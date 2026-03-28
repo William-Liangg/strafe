@@ -159,7 +159,9 @@ async def get_expertise_graph(db: AsyncSession = Depends(get_db)):
     """
     Returns the full expertise graph: nodes (contributors) + edges (shared domains).
     """
-    result = await db.execute(select(ExpertiseMap))
+    result = await db.execute(
+        select(ExpertiseMap).where(ExpertiseMap.github_login.isnot(None))
+    )
     rows = result.scalars().all()
     return _build_graph(rows)
 
@@ -175,13 +177,12 @@ async def trigger_sync(db: AsyncSession = Depends(get_db)):
     # Dispatch the Celery task
     task = github_sync_task.delay()
 
-    # Record the sync attempt in DB
+    # Record the sync attempt in DB (get_db commits on response)
     sync_record = GithubSync(
         celery_task_id=task.id,
         status="running",
     )
     db.add(sync_record)
-    await db.commit()
 
     logger.info(f"GitHub sync triggered, task_id={task.id}")
     return SyncTriggerResponse(task_id=task.id, status="running")
@@ -217,7 +218,7 @@ async def get_sync_status(db: AsyncSession = Depends(get_db)):
                 latest.status = "success" if async_result.state == "SUCCESS" else "failed"
                 if async_result.state == "FAILURE":
                     latest.error_message = str(async_result.result)
-                await db.commit()
+                # get_db commits on response
         except Exception:
             pass  # Don't fail the status check if Celery is unavailable
 

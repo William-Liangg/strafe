@@ -154,6 +154,53 @@ Return ONLY a JSON array, no markdown, no explanation:
 
 
 # ---------------------------------------------------------------------------
+# Collect all unique contributors across every branch
+# ---------------------------------------------------------------------------
+
+
+async def _collect_all_contributors(
+    client: httpx.AsyncClient,
+    owner: str,
+    repo: str,
+) -> dict[str, str]:
+    """
+    Returns {login: avatar_url} for every human contributor found in any branch.
+    Uses the branches list + per-branch commit history so feature-branch-only
+    contributors are included.
+    """
+    contributor_map: dict[str, str] = {}
+
+    # Fetch all branches
+    branches = await _paginate(
+        client,
+        f"{GITHUB_API_BASE}/repos/{owner}/{repo}/branches",
+        max_pages=5,
+    )
+    branch_names = [b["name"] for b in branches if b.get("name")]
+    logger.info(f"Found {len(branch_names)} branches: {branch_names}")
+
+    for branch in branch_names:
+        commits = await _paginate(
+            client,
+            f"{GITHUB_API_BASE}/repos/{owner}/{repo}/commits",
+            params={"sha": branch},
+            max_pages=3,
+        )
+        for commit in commits:
+            author = commit.get("author")  # GitHub user object (not git author)
+            if not author:
+                continue
+            login: str = author.get("login", "")
+            avatar_url: str = author.get("avatar_url", "")
+            if login and not login.endswith("[bot]") and login not in contributor_map:
+                contributor_map[login] = avatar_url
+
+        await asyncio.sleep(0.1)  # gentle rate-limit cushion between branches
+
+    return contributor_map
+
+
+# ---------------------------------------------------------------------------
 # Main analysis entry point
 # ---------------------------------------------------------------------------
 
@@ -179,26 +226,19 @@ async def analyze_repo(owner: str, repo: str, github_token: str) -> dict:
     domains_extracted = 0
 
     async with httpx.AsyncClient(headers=headers, timeout=30.0) as client:
-        # 1. List contributors
-        contributors = await _paginate(
-            client,
-            f"{GITHUB_API_BASE}/repos/{owner}/{repo}/contributors",
-            max_pages=3,
-        )
+        # 1. Collect unique contributors across ALL branches (not just default/main)
+        contributor_map = await _collect_all_contributors(client, owner, repo)
 
-        if not contributors:
+        if not contributor_map:
             logger.warning(f"No contributors found for {owner}/{repo}")
             return {"contributors_analyzed": 0, "domains_extracted": 0}
 
-        logger.info(f"Found {len(contributors)} contributors in {owner}/{repo}")
+        logger.info(
+            f"Found {len(contributor_map)} unique contributors across all branches "
+            f"in {owner}/{repo}"
+        )
 
-        for contributor in contributors:
-            login: str = contributor.get("login", "")
-            avatar_url: str = contributor.get("avatar_url", "")
-
-            if not login or login.endswith("[bot]"):
-                continue
-
+        for login, avatar_url in contributor_map.items():
             try:
                 await _analyze_one_contributor(
                     client=client,
