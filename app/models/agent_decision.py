@@ -13,6 +13,8 @@ class AgentAction(str, enum.Enum):
     FLAGGED_FOR_REVIEW = "flagged_for_review"
     DISMISSED = "dismissed"
     PATTERN_MATCHED = "pattern_matched"
+    POST_MORTEM_GENERATED = "post_mortem_generated"
+    SPRINT_HEALTH_REPORTED = "sprint_health_reported"
 
 
 class AgentDecision(Base):
@@ -34,7 +36,12 @@ class AgentDecision(Base):
         nullable=True,
     )
     action: Mapped[AgentAction] = mapped_column(
-        Enum(AgentAction, name="agent_action", create_type=False),
+        Enum(
+            AgentAction,
+            name="agent_action",
+            create_type=False,
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
         nullable=False,
     )
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
