@@ -162,13 +162,13 @@ async def _collect_all_contributors(
     client: httpx.AsyncClient,
     owner: str,
     repo: str,
-) -> dict[str, str]:
+) -> dict[str, dict]:
     """
-    Returns {login: avatar_url} for every human contributor found in any branch.
-    Uses the branches list + per-branch commit history so feature-branch-only
-    contributors are included.
+    Returns {login: {"avatar_url": str, "commit_messages": list[str]}} for every
+    human contributor found in any branch. Collecting commit messages here avoids
+    a second author-filtered query (which fails when git email != GitHub account email).
     """
-    contributor_map: dict[str, str] = {}
+    contributor_map: dict[str, dict] = {}
 
     # Fetch all branches
     branches = await _paginate(
@@ -192,8 +192,13 @@ async def _collect_all_contributors(
                 continue
             login: str = author.get("login", "")
             avatar_url: str = author.get("avatar_url", "")
-            if login and not login.endswith("[bot]") and login not in contributor_map:
-                contributor_map[login] = avatar_url
+            if not login or login.endswith("[bot]"):
+                continue
+            message: str = commit.get("commit", {}).get("message", "").split("\n")[0]
+            if login not in contributor_map:
+                contributor_map[login] = {"avatar_url": avatar_url, "commit_messages": []}
+            if message and message not in contributor_map[login]["commit_messages"]:
+                contributor_map[login]["commit_messages"].append(message)
 
         await asyncio.sleep(0.1)  # gentle rate-limit cushion between branches
 
@@ -238,7 +243,7 @@ async def analyze_repo(owner: str, repo: str, github_token: str) -> dict:
             f"in {owner}/{repo}"
         )
 
-        for login, avatar_url in contributor_map.items():
+        for login, info in contributor_map.items():
             try:
                 await _analyze_one_contributor(
                     client=client,
@@ -246,7 +251,8 @@ async def analyze_repo(owner: str, repo: str, github_token: str) -> dict:
                     owner=owner,
                     repo=repo,
                     login=login,
-                    avatar_url=avatar_url,
+                    avatar_url=info["avatar_url"],
+                    known_commit_messages=info["commit_messages"],
                 )
                 contributors_analyzed += 1
                 domains_extracted += await _count_domains_for(login)
@@ -268,22 +274,13 @@ async def _analyze_one_contributor(
     repo: str,
     login: str,
     avatar_url: str,
+    known_commit_messages: list[str] | None = None,
 ) -> None:
     """Fetch activity for one contributor, run Claude, write to DB."""
     logger.info(f"Analyzing contributor: {login}")
 
-    # Commits by this contributor (message only — avoid per-commit file API calls)
-    commits_raw = await _paginate(
-        client,
-        f"{GITHUB_API_BASE}/repos/{owner}/{repo}/commits",
-        params={"author": login},
-        max_pages=3,
-    )
-    commit_messages = [
-        c["commit"]["message"].split("\n")[0]
-        for c in commits_raw
-        if c.get("commit", {}).get("message")
-    ]
+    # Use pre-collected commit messages (avoids email-mismatch issues with author filter)
+    commit_messages = known_commit_messages or []
 
     # PRs opened by this contributor (via search to support filtering by author)
     pr_search = await _github_get(
@@ -340,8 +337,8 @@ async def _analyze_one_contributor(
     )
 
     if not domains:
-        logger.warning(f"No domains inferred for {login} — skipping DB write")
-        return
+        logger.warning(f"No domains inferred for {login} — using fallback")
+        domains = [{"domain": "General Development", "score": 0.4}]
 
     # Write to expertise_map: delete existing GitHub-derived rows first
     async with async_session() as session:
