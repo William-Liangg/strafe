@@ -19,36 +19,36 @@ async def seed_channel_configs():
     """Seed channel configurations for demo."""
     configs = [
         {
-            "channel_id": "C_BACKEND_HELP",
-            "channel_name": "#backend-help",
+            "channel_id": "C_PLATFORM_ENG",
+            "channel_name": "#platform-engineering",
             "workspace_id": "T_DEMO_WORKSPACE",
-            "sensitivity": 0.6,  # High sensitivity
+            "sensitivity": 0.55,
             "monitoring_active": True,
             "min_replies": 2,
         },
         {
-            "channel_id": "C_SALES_ENG",
-            "channel_name": "#sales-engineering",
+            "channel_id": "C_CUSTOMER_SUCCESS",
+            "channel_name": "#customer-success",
             "workspace_id": "T_DEMO_WORKSPACE",
-            "sensitivity": 0.75,  # Medium sensitivity
+            "sensitivity": 0.7,
             "monitoring_active": True,
-            "min_replies": 2,
+            "min_replies": 3,
         },
         {
-            "channel_id": "C_ENG_REQUESTS",
-            "channel_name": "#eng-requests",
+            "channel_id": "C_INFRA_ALERTS",
+            "channel_name": "#infra-alerts",
             "workspace_id": "T_DEMO_WORKSPACE",
-            "sensitivity": 0.6,
+            "sensitivity": 0.5,
             "monitoring_active": True,
-            "min_replies": 2,
+            "min_replies": 1,
         },
         {
-            "channel_id": "C_RANDOM",
-            "channel_name": "#random",
+            "channel_id": "C_GENERAL",
+            "channel_name": "#general",
             "workspace_id": "T_DEMO_WORKSPACE",
-            "sensitivity": 0.9,
-            "monitoring_active": False,  # Disabled
-            "min_replies": 5,
+            "sensitivity": 0.95,
+            "monitoring_active": False,
+            "min_replies": 10,
         },
     ]
 
@@ -66,68 +66,68 @@ async def seed_expertise_map():
 
     experts = [
         {
-            "engineer_slack_id": "U_MAYA_PATEL",
-            "engineer_name": "Maya Patel",
-            "service_or_domain": "quotes-service",
-            "score": 9.2,
-            "pr_count": 8,
-            "last_active": now - timedelta(days=2),
-        },
-        {
-            "engineer_slack_id": "U_MAYA_PATEL",
-            "engineer_name": "Maya Patel",
-            "service_or_domain": "pricing-api",
-            "score": 7.5,
-            "pr_count": 5,
-            "last_active": now - timedelta(days=5),
-        },
-        {
-            "engineer_slack_id": "U_ALEX_CHEN",
-            "engineer_name": "Alex Chen",
-            "service_or_domain": "orders-service",
-            "score": 8.8,
-            "pr_count": 12,
+            "engineer_slack_id": "U_PRIYA_SHARMA",
+            "engineer_name": "Priya Sharma",
+            "service_or_domain": "payments-service",
+            "score": 9.4,
+            "pr_count": 11,
             "last_active": now - timedelta(days=1),
         },
         {
-            "engineer_slack_id": "U_ALEX_CHEN",
-            "engineer_name": "Alex Chen",
-            "service_or_domain": "inventory-api",
-            "score": 6.5,
-            "pr_count": 4,
-            "last_active": now - timedelta(days=8),
-        },
-        {
-            "engineer_slack_id": "U_JORDAN_LEE",
-            "engineer_name": "Jordan Lee",
-            "service_or_domain": "auth-service",
-            "score": 9.5,
-            "pr_count": 15,
-            "last_active": now - timedelta(days=1),
-        },
-        {
-            "engineer_slack_id": "U_JORDAN_LEE",
-            "engineer_name": "Jordan Lee",
-            "service_or_domain": "user-api",
-            "score": 7.0,
-            "pr_count": 6,
+            "engineer_slack_id": "U_PRIYA_SHARMA",
+            "engineer_name": "Priya Sharma",
+            "service_or_domain": "billing-api",
+            "score": 8.1,
+            "pr_count": 7,
             "last_active": now - timedelta(days=3),
         },
         {
-            "engineer_slack_id": "U_SAM_WILSON",
-            "engineer_name": "Sam Wilson",
-            "service_or_domain": "analytics-service",
-            "score": 8.0,
+            "engineer_slack_id": "U_DANIEL_KIM",
+            "engineer_name": "Daniel Kim",
+            "service_or_domain": "infra-platform",
+            "score": 9.0,
+            "pr_count": 14,
+            "last_active": now - timedelta(days=1),
+        },
+        {
+            "engineer_slack_id": "U_DANIEL_KIM",
+            "engineer_name": "Daniel Kim",
+            "service_or_domain": "kubernetes-ops",
+            "score": 8.5,
             "pr_count": 9,
             "last_active": now - timedelta(days=4),
         },
         {
-            "engineer_slack_id": "U_SAM_WILSON",
-            "engineer_name": "Sam Wilson",
-            "service_or_domain": "reporting-api",
-            "score": 7.8,
-            "pr_count": 7,
+            "engineer_slack_id": "U_RACHEL_TONG",
+            "engineer_name": "Rachel Tong",
+            "service_or_domain": "notifications-service",
+            "score": 8.7,
+            "pr_count": 10,
+            "last_active": now - timedelta(days=2),
+        },
+        {
+            "engineer_slack_id": "U_RACHEL_TONG",
+            "engineer_name": "Rachel Tong",
+            "service_or_domain": "email-api",
+            "score": 7.2,
+            "pr_count": 5,
             "last_active": now - timedelta(days=6),
+        },
+        {
+            "engineer_slack_id": "U_MARCO_DIAZ",
+            "engineer_name": "Marco Diaz",
+            "service_or_domain": "search-service",
+            "score": 8.3,
+            "pr_count": 8,
+            "last_active": now - timedelta(days=3),
+        },
+        {
+            "engineer_slack_id": "U_MARCO_DIAZ",
+            "engineer_name": "Marco Diaz",
+            "service_or_domain": "indexing-api",
+            "score": 7.6,
+            "pr_count": 6,
+            "last_active": now - timedelta(days=7),
         },
     ]
 
@@ -145,44 +145,41 @@ async def seed_sprints():
 
     sprints_data = [
         {
-            "jira_sprint_id": 12,
-            "name": "Sprint 12",
+            "jira_sprint_id": 21,
+            "name": "Sprint 21",
             "state": "closed",
             "start_date": now - timedelta(weeks=5),
             "end_date": now - timedelta(weeks=3),
-            # Stored metrics for closed sprint
             "adhoc_count": 3,
             "planned_count": 15,
             "adhoc_percentage": 16.7,
-            "top_source_channel": "#backend-help",
+            "top_source_channel": "#infra-alerts",
             "total_story_points_adhoc": 8,
             "total_story_points_planned": 42,
         },
         {
-            "jira_sprint_id": 13,
-            "name": "Sprint 13",
+            "jira_sprint_id": 22,
+            "name": "Sprint 22",
             "state": "closed",
             "start_date": now - timedelta(weeks=3),
             "end_date": now - timedelta(weeks=1),
-            # Stored metrics for closed sprint
             "adhoc_count": 5,
             "planned_count": 15,
             "adhoc_percentage": 25.0,
-            "top_source_channel": "#sales-engineering",
+            "top_source_channel": "#customer-success",
             "total_story_points_adhoc": 13,
             "total_story_points_planned": 38,
         },
         {
-            "jira_sprint_id": 14,
-            "name": "Sprint 14",
+            "jira_sprint_id": 23,
+            "name": "Sprint 23",
             "state": "active",
             "start_date": now - timedelta(weeks=1),
             "end_date": now + timedelta(weeks=1),
-            # Store metrics for active sprint too (4 adhoc + 13 planned = 17 total, 23.5% adhoc)
             "adhoc_count": 4,
             "planned_count": 13,
             "adhoc_percentage": 23.5,
-            "top_source_channel": "#sales-engineering",
+            "top_source_channel": "#customer-success",
             "total_story_points_adhoc": 13,
             "total_story_points_planned": 39,
         },
@@ -208,253 +205,253 @@ async def seed_historical_tasks_and_tickets():
         # Get sprints for assignment
         sprint_result = await session.execute(select(Sprint))
         sprints = {s.jira_sprint_id: s for s in sprint_result.scalars().all()}
-        sprint_12 = sprints.get(12)
-        sprint_13 = sprints.get(13)
-        sprint_14 = sprints.get(14)
+        sprint_21 = sprints.get(21)
+        sprint_22 = sprints.get(22)
+        sprint_23 = sprints.get(23)
 
-        # --- Current Sprint (14) Tickets - 4 adhoc from Slack ---
-        # 2 from #sales-engineering (top source), 1 from #backend-help, 1 from #eng-requests
+        # --- Current Sprint (23) Tickets - 4 adhoc from Slack ---
+        # 2 from #customer-success (top source), 1 from #infra-alerts, 1 from #platform-engineering
         current_threads = [
-            {"thread_ts": "1711000001.000001", "channel_id": "C_SALES_ENG", "workspace_id": "T_DEMO_WORKSPACE", "reply_count": 4},
-            {"thread_ts": "1711000002.000002", "channel_id": "C_SALES_ENG", "workspace_id": "T_DEMO_WORKSPACE", "reply_count": 3},
-            {"thread_ts": "1711000003.000003", "channel_id": "C_BACKEND_HELP", "workspace_id": "T_DEMO_WORKSPACE", "reply_count": 5},
-            {"thread_ts": "1711000004.000004", "channel_id": "C_ENG_REQUESTS", "workspace_id": "T_DEMO_WORKSPACE", "reply_count": 6},
+            {"thread_ts": "1712000001.000001", "channel_id": "C_CUSTOMER_SUCCESS", "workspace_id": "T_DEMO_WORKSPACE", "reply_count": 5},
+            {"thread_ts": "1712000002.000002", "channel_id": "C_CUSTOMER_SUCCESS", "workspace_id": "T_DEMO_WORKSPACE", "reply_count": 4},
+            {"thread_ts": "1712000003.000003", "channel_id": "C_INFRA_ALERTS", "workspace_id": "T_DEMO_WORKSPACE", "reply_count": 6},
+            {"thread_ts": "1712000004.000004", "channel_id": "C_PLATFORM_ENG", "workspace_id": "T_DEMO_WORKSPACE", "reply_count": 3},
         ]
 
         current_tasks = [
-            {"classification": "feature_request", "confidence": 0.92, "title": "Expose margin_percent and cost_basis on /v2/quotes endpoint", "description": "Sales team needs margin data exposed in the quotes API.", "priority": "high", "status": "converted"},
-            {"classification": "bug", "confidence": 0.88, "title": "Fix pagination returning duplicate results on /orders", "description": "Pagination on orders endpoint returning duplicate items.", "priority": "high", "status": "converted"},
-            {"classification": "feature_request", "confidence": 0.85, "title": "Add discount_code field to sales quotes response", "description": "Product team requesting discount code field.", "priority": "medium", "status": "converted"},
-            {"classification": "bug", "confidence": 0.91, "title": "Auth tokens expiring early on mobile clients", "description": "Mobile users reporting frequent logouts.", "priority": "critical", "status": "converted"},
+            {"classification": "bug", "confidence": 0.94, "title": "Payment retries charging customers twice on timeout", "description": "Idempotency key not passed on retry — results in double charge.", "priority": "critical", "status": "converted"},
+            {"classification": "feature_request", "confidence": 0.87, "title": "Expose invoice PDF download endpoint for enterprise accounts", "description": "Enterprise customers need programmatic invoice access.", "priority": "high", "status": "converted"},
+            {"classification": "feature_request", "confidence": 0.83, "title": "Add node autoscaling policy for batch jobs", "description": "Batch workloads causing OOM on fixed-size node pools.", "priority": "high", "status": "converted"},
+            {"classification": "bug", "confidence": 0.91, "title": "Search index not reflecting deletes within SLA window", "description": "Deleted records still appearing in search results for up to 5 minutes.", "priority": "medium", "status": "converted"},
         ]
 
         current_tickets = [
             {
-                "title": "Expose margin_percent and cost_basis on /v2/quotes endpoint",
-                "description": "## Summary\nSales team needs margin data exposed in the quotes API.\n\n## Acceptance Criteria\n- Add `margin_percent` field\n- Add `cost_basis` field",
-                "priority": "high", "labels": ["adhoc", "feature"], "story_points": 5,
-                "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel",
-                "assignee_reason": "8 PRs on quotes-service in last 90 days",
-                "source_channel_id": "C_SALES_ENG", "source_channel_name": "#sales-engineering",
-                "source_thread_ts": "1711000001.000001", "origin_type": "adhoc", "trigger_mode": "automatic", "status": "draft",
-            },
-            {
-                "title": "Fix pagination returning duplicate results on /orders",
-                "description": "## Summary\nPagination on orders endpoint is returning duplicate items.\n\n## Steps to Reproduce\n1. Call GET /orders?limit=10&offset=0\n2. Call GET /orders?limit=10&offset=10",
-                "priority": "high", "labels": ["adhoc", "bug"], "story_points": 3,
-                "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen",
-                "assignee_reason": "12 PRs on orders-service in last 90 days",
-                "source_channel_id": "C_SALES_ENG", "source_channel_name": "#sales-engineering",
-                "source_thread_ts": "1711000002.000002", "origin_type": "adhoc", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-41", "jira_ticket_url": "https://yourworkspace.atlassian.net/browse/ENG-41",
-            },
-            {
-                "title": "Add discount_code field to sales quotes response",
-                "description": "## Summary\nProduct team requesting discount code field in quotes response.",
-                "priority": "medium", "labels": ["adhoc", "feature"], "story_points": 2,
-                "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel",
-                "assignee_reason": "8 PRs on quotes-service in last 90 days",
-                "source_channel_id": "C_BACKEND_HELP", "source_channel_name": "#backend-help",
-                "source_thread_ts": "1711000003.000003", "origin_type": "adhoc", "trigger_mode": "slash_command",
-                "status": "created", "jira_ticket_id": "ENG-42", "jira_ticket_url": "https://yourworkspace.atlassian.net/browse/ENG-42",
-            },
-            {
-                "title": "Auth tokens expiring early on mobile clients",
-                "description": "## Summary\nMobile users reporting frequent logouts. Token TTL may be misconfigured.",
-                "priority": "critical", "labels": ["adhoc", "bug"], "story_points": 3,
-                "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee",
-                "assignee_reason": "15 PRs on auth-service in last 90 days",
-                "source_channel_id": "C_ENG_REQUESTS", "source_channel_name": "#eng-requests",
-                "source_thread_ts": "1711000004.000004", "origin_type": "adhoc", "trigger_mode": "emoji_reaction",
-                "status": "created", "jira_ticket_id": "ENG-43", "jira_ticket_url": "https://yourworkspace.atlassian.net/browse/ENG-43",
-            },
-        ]
-
-        # --- Historical Sprint 12 Tickets (3 adhoc) ---
-        sprint_12_tickets = [
-            {
-                "title": "Add rate limiting to public API endpoints",
-                "description": "## Summary\nCustomer reported API abuse. Need rate limiting on public endpoints.",
-                "priority": "high", "labels": ["adhoc", "security"], "story_points": 3,
-                "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee",
-                "source_channel_id": "C_BACKEND_HELP", "source_channel_name": "#backend-help",
-                "origin_type": "adhoc", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-28", "completed_at": now - timedelta(weeks=3, days=2),
-            },
-            {
-                "title": "Fix memory leak in websocket connections",
-                "description": "## Summary\nProd servers running out of memory after 48hrs. WebSocket connections not cleaning up.",
-                "priority": "critical", "labels": ["adhoc", "bug"], "story_points": 3,
-                "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen",
-                "source_channel_id": "C_BACKEND_HELP", "source_channel_name": "#backend-help",
-                "origin_type": "adhoc", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-29", "completed_at": now - timedelta(weeks=3, days=4),
-            },
-            {
-                "title": "Add CSV export to analytics dashboard",
-                "description": "## Summary\nFinance team needs to export analytics data to CSV for reporting.",
-                "priority": "medium", "labels": ["adhoc", "feature"], "story_points": 2,
-                "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson",
-                "source_channel_id": "C_BACKEND_HELP", "source_channel_name": "#backend-help",
-                "origin_type": "adhoc", "trigger_mode": "slash_command",
-                "status": "created", "jira_ticket_id": "ENG-30", "completed_at": now - timedelta(weeks=3, days=1),
-            },
-        ]
-
-        # --- Historical Sprint 13 Tickets (5 adhoc) ---
-        sprint_13_tickets = [
-            {
-                "title": "Urgent: Fix SSO login broken for enterprise customers",
-                "description": "## Summary\nEnterprise SSO login returning 500 errors. High priority customer escalation.",
+                "title": "Payment retries charging customers twice on timeout",
+                "description": "## Summary\nIdempotency key not forwarded on retry path causing duplicate charges.\n\n## Acceptance Criteria\n- Pass idempotency key on all retry attempts\n- Add integration test for timeout + retry scenario",
                 "priority": "critical", "labels": ["adhoc", "bug"], "story_points": 5,
-                "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee",
-                "source_channel_id": "C_SALES_ENG", "source_channel_name": "#sales-engineering",
-                "origin_type": "adhoc", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-33", "completed_at": now - timedelta(weeks=1, days=5),
+                "suggested_assignee_slack_id": "U_PRIYA_SHARMA", "suggested_assignee_name": "Priya Sharma",
+                "assignee_reason": "11 PRs on payments-service in last 90 days",
+                "source_channel_id": "C_CUSTOMER_SUCCESS", "source_channel_name": "#customer-success",
+                "source_thread_ts": "1712000001.000001", "origin_type": "adhoc", "trigger_mode": "automatic", "status": "draft",
             },
             {
-                "title": "Add custom field support to quote builder",
-                "description": "## Summary\nSales needs custom fields in quote builder for enterprise deals.",
+                "title": "Expose invoice PDF download endpoint for enterprise accounts",
+                "description": "## Summary\nEnterprise customers need a REST endpoint to download invoices as PDF.",
                 "priority": "high", "labels": ["adhoc", "feature"], "story_points": 3,
-                "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel",
-                "source_channel_id": "C_SALES_ENG", "source_channel_name": "#sales-engineering",
-                "origin_type": "adhoc", "trigger_mode": "slash_command",
-                "status": "created", "jira_ticket_id": "ENG-34", "completed_at": now - timedelta(weeks=1, days=3),
+                "suggested_assignee_slack_id": "U_PRIYA_SHARMA", "suggested_assignee_name": "Priya Sharma",
+                "assignee_reason": "7 PRs on billing-api in last 90 days",
+                "source_channel_id": "C_CUSTOMER_SUCCESS", "source_channel_name": "#customer-success",
+                "source_thread_ts": "1712000002.000002", "origin_type": "adhoc", "trigger_mode": "automatic",
+                "status": "created", "jira_ticket_id": "PLT-61", "jira_ticket_url": "https://yourworkspace.atlassian.net/browse/PLT-61",
             },
             {
-                "title": "Performance regression in search API after deploy",
-                "description": "## Summary\nSearch latency increased 3x after last deploy. P95 now at 800ms.",
-                "priority": "high", "labels": ["adhoc", "bug"], "story_points": 2,
-                "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen",
-                "source_channel_id": "C_SALES_ENG", "source_channel_name": "#sales-engineering",
-                "origin_type": "adhoc", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-35", "completed_at": now - timedelta(weeks=1, days=4),
+                "title": "Add node autoscaling policy for batch jobs",
+                "description": "## Summary\nBatch jobs causing OOM kills on current fixed-size node pools.\n\n## Acceptance Criteria\n- Configure HPA/KEDA for batch job queues\n- Set memory limits and requests",
+                "priority": "high", "labels": ["adhoc", "infrastructure"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_DANIEL_KIM", "suggested_assignee_name": "Daniel Kim",
+                "assignee_reason": "14 PRs on infra-platform in last 90 days",
+                "source_channel_id": "C_INFRA_ALERTS", "source_channel_name": "#infra-alerts",
+                "source_thread_ts": "1712000003.000003", "origin_type": "adhoc", "trigger_mode": "slash_command",
+                "status": "created", "jira_ticket_id": "PLT-62", "jira_ticket_url": "https://yourworkspace.atlassian.net/browse/PLT-62",
             },
             {
-                "title": "Webhook delivery failures to customer endpoints",
-                "description": "## Summary\nWebhook retries exhausting. Customer integration failing silently.",
+                "title": "Search index not reflecting deletes within SLA window",
+                "description": "## Summary\nDeleted records still appearing in search results for up to 5 minutes post-delete.",
                 "priority": "medium", "labels": ["adhoc", "bug"], "story_points": 2,
-                "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson",
-                "source_channel_id": "C_BACKEND_HELP", "source_channel_name": "#backend-help",
-                "origin_type": "adhoc", "trigger_mode": "emoji_reaction",
-                "status": "created", "jira_ticket_id": "ENG-36", "completed_at": now - timedelta(weeks=1, days=2),
-            },
-            {
-                "title": "Add bulk import for inventory items",
-                "description": "## Summary\nOperations team needs to import 10k+ items. Current UI times out.",
-                "priority": "medium", "labels": ["adhoc", "feature"], "story_points": 1,
-                "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen",
-                "source_channel_id": "C_ENG_REQUESTS", "source_channel_name": "#eng-requests",
-                "origin_type": "adhoc", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-37", "completed_at": now - timedelta(weeks=1, days=1),
+                "suggested_assignee_slack_id": "U_MARCO_DIAZ", "suggested_assignee_name": "Marco Diaz",
+                "assignee_reason": "8 PRs on search-service in last 90 days",
+                "source_channel_id": "C_PLATFORM_ENG", "source_channel_name": "#platform-engineering",
+                "source_thread_ts": "1712000004.000004", "origin_type": "adhoc", "trigger_mode": "emoji_reaction",
+                "status": "created", "jira_ticket_id": "PLT-63", "jira_ticket_url": "https://yourworkspace.atlassian.net/browse/PLT-63",
             },
         ]
 
-        # --- Sprint 14 Planned Tickets (13 planned - from Jira sprint planning) ---
-        sprint_14_planned_tickets = [
+        # --- Historical Sprint 21 Tickets (3 adhoc) ---
+        sprint_21_tickets = [
             {
-                "title": "Implement user dashboard redesign",
-                "description": "## Summary\nRedesign user dashboard per new Figma specs.",
-                "priority": "high", "labels": ["planned", "feature"], "story_points": 5,
-                "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel",
-                "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-44",
+                "title": "Fix broken SAML assertion parsing for Okta SSO",
+                "description": "## Summary\nOkta SSO logins failing due to incorrect NameID format handling.",
+                "priority": "critical", "labels": ["adhoc", "bug"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_RACHEL_TONG", "suggested_assignee_name": "Rachel Tong",
+                "source_channel_id": "C_CUSTOMER_SUCCESS", "source_channel_name": "#customer-success",
+                "origin_type": "adhoc", "trigger_mode": "automatic",
+                "status": "created", "jira_ticket_id": "PLT-48", "completed_at": now - timedelta(weeks=3, days=3),
             },
             {
-                "title": "Add PostgreSQL read replicas support",
-                "description": "## Summary\nScale read operations with read replica support.",
+                "title": "Increase Elasticsearch index shard count for logs",
+                "description": "## Summary\nLog index hitting shard limits causing write rejections in production.",
+                "priority": "high", "labels": ["adhoc", "infrastructure"], "story_points": 2,
+                "suggested_assignee_slack_id": "U_DANIEL_KIM", "suggested_assignee_name": "Daniel Kim",
+                "source_channel_id": "C_INFRA_ALERTS", "source_channel_name": "#infra-alerts",
+                "origin_type": "adhoc", "trigger_mode": "emoji_reaction",
+                "status": "created", "jira_ticket_id": "PLT-49", "completed_at": now - timedelta(weeks=3, days=1),
+            },
+            {
+                "title": "Add dead letter queue for failed webhook deliveries",
+                "description": "## Summary\nFailed webhooks silently dropped. Need DLQ to inspect and replay.",
+                "priority": "medium", "labels": ["adhoc", "feature"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_MARCO_DIAZ", "suggested_assignee_name": "Marco Diaz",
+                "source_channel_id": "C_PLATFORM_ENG", "source_channel_name": "#platform-engineering",
+                "origin_type": "adhoc", "trigger_mode": "slash_command",
+                "status": "created", "jira_ticket_id": "PLT-50", "completed_at": now - timedelta(weeks=3, days=2),
+            },
+        ]
+
+        # --- Historical Sprint 22 Tickets (5 adhoc) ---
+        sprint_22_tickets = [
+            {
+                "title": "Notification emails sending in wrong timezone for EU customers",
+                "description": "## Summary\nScheduled notification emails using UTC instead of customer local timezone.",
+                "priority": "high", "labels": ["adhoc", "bug"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_RACHEL_TONG", "suggested_assignee_name": "Rachel Tong",
+                "source_channel_id": "C_CUSTOMER_SUCCESS", "source_channel_name": "#customer-success",
+                "origin_type": "adhoc", "trigger_mode": "automatic",
+                "status": "created", "jira_ticket_id": "PLT-51", "completed_at": now - timedelta(weeks=1, days=6),
+            },
+            {
+                "title": "Search results missing recently created records",
+                "description": "## Summary\nIndex lag causing new records to be invisible in search for up to 10 minutes.",
+                "priority": "high", "labels": ["adhoc", "bug"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_MARCO_DIAZ", "suggested_assignee_name": "Marco Diaz",
+                "source_channel_id": "C_CUSTOMER_SUCCESS", "source_channel_name": "#customer-success",
+                "origin_type": "adhoc", "trigger_mode": "automatic",
+                "status": "created", "jira_ticket_id": "PLT-52", "completed_at": now - timedelta(weeks=1, days=5),
+            },
+            {
+                "title": "Add Prometheus metrics endpoint to billing service",
+                "description": "## Summary\nBilling service missing /metrics endpoint. Oncall can't observe payment latency.",
+                "priority": "medium", "labels": ["adhoc", "observability"], "story_points": 2,
+                "suggested_assignee_slack_id": "U_PRIYA_SHARMA", "suggested_assignee_name": "Priya Sharma",
+                "source_channel_id": "C_INFRA_ALERTS", "source_channel_name": "#infra-alerts",
+                "origin_type": "adhoc", "trigger_mode": "slash_command",
+                "status": "created", "jira_ticket_id": "PLT-53", "completed_at": now - timedelta(weeks=1, days=4),
+            },
+            {
+                "title": "Pod crashlooping in staging after cert rotation",
+                "description": "## Summary\nTLS cert rotation not propagated to mounted secrets. Pods failing liveness probe.",
+                "priority": "critical", "labels": ["adhoc", "bug"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_DANIEL_KIM", "suggested_assignee_name": "Daniel Kim",
+                "source_channel_id": "C_INFRA_ALERTS", "source_channel_name": "#infra-alerts",
+                "origin_type": "adhoc", "trigger_mode": "automatic",
+                "status": "created", "jira_ticket_id": "PLT-54", "completed_at": now - timedelta(weeks=1, days=3),
+            },
+            {
+                "title": "Add support for CC recipients on transactional emails",
+                "description": "## Summary\nCustomers requesting CC field support for invoice and alert emails.",
+                "priority": "medium", "labels": ["adhoc", "feature"], "story_points": 2,
+                "suggested_assignee_slack_id": "U_RACHEL_TONG", "suggested_assignee_name": "Rachel Tong",
+                "source_channel_id": "C_CUSTOMER_SUCCESS", "source_channel_name": "#customer-success",
+                "origin_type": "adhoc", "trigger_mode": "slash_command",
+                "status": "created", "jira_ticket_id": "PLT-55", "completed_at": now - timedelta(weeks=1, days=2),
+            },
+        ]
+
+        # --- Sprint 23 Planned Tickets (13 planned - from Jira sprint planning) ---
+        sprint_23_planned_tickets = [
+            {
+                "title": "Migrate payments service to gRPC",
+                "description": "## Summary\nReplace REST calls between payments and billing with gRPC for lower latency.",
                 "priority": "high", "labels": ["planned", "infrastructure"], "story_points": 5,
-                "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen",
+                "suggested_assignee_slack_id": "U_PRIYA_SHARMA", "suggested_assignee_name": "Priya Sharma",
                 "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-45",
+                "status": "created", "jira_ticket_id": "PLT-64",
             },
             {
-                "title": "Implement OAuth2 PKCE flow for mobile",
-                "description": "## Summary\nAdd PKCE support for mobile OAuth flow.",
-                "priority": "high", "labels": ["planned", "security"], "story_points": 3,
-                "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee",
+                "title": "Set up multi-region failover for Postgres",
+                "description": "## Summary\nAdd read replica in EU region with automatic promotion on primary failure.",
+                "priority": "high", "labels": ["planned", "reliability"], "story_points": 5,
+                "suggested_assignee_slack_id": "U_DANIEL_KIM", "suggested_assignee_name": "Daniel Kim",
                 "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-46",
+                "status": "created", "jira_ticket_id": "PLT-65",
             },
             {
-                "title": "Build analytics data pipeline v2",
-                "description": "## Summary\nMigrate analytics to new event-driven pipeline.",
-                "priority": "medium", "labels": ["planned", "data"], "story_points": 5,
-                "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson",
+                "title": "Implement idempotency layer for payment API",
+                "description": "## Summary\nAdd server-side idempotency key storage to prevent duplicate transactions.",
+                "priority": "high", "labels": ["planned", "feature"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_PRIYA_SHARMA", "suggested_assignee_name": "Priya Sharma",
                 "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-47",
+                "status": "created", "jira_ticket_id": "PLT-66",
             },
             {
-                "title": "Add unit tests for payment service",
-                "description": "## Summary\nIncrease test coverage for payment service to 80%.",
-                "priority": "medium", "labels": ["planned", "testing"], "story_points": 3,
-                "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen",
-                "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-48",
-            },
-            {
-                "title": "Implement email template system",
-                "description": "## Summary\nBuild reusable email template system with variables.",
+                "title": "Add full-text search to notifications history",
+                "description": "## Summary\nUsers want to search past notifications by content and date range.",
                 "priority": "medium", "labels": ["planned", "feature"], "story_points": 3,
-                "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel",
+                "suggested_assignee_slack_id": "U_MARCO_DIAZ", "suggested_assignee_name": "Marco Diaz",
                 "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-49",
+                "status": "created", "jira_ticket_id": "PLT-67",
             },
             {
-                "title": "Add Datadog APM integration",
-                "description": "## Summary\nIntegrate Datadog APM for production monitoring.",
-                "priority": "medium", "labels": ["planned", "observability"], "story_points": 2,
-                "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson",
+                "title": "Upgrade Kafka to 3.7 and enable KRaft mode",
+                "description": "## Summary\nRemove ZooKeeper dependency by enabling KRaft consensus in Kafka.",
+                "priority": "medium", "labels": ["planned", "infrastructure"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_DANIEL_KIM", "suggested_assignee_name": "Daniel Kim",
                 "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-50",
+                "status": "created", "jira_ticket_id": "PLT-68",
             },
             {
-                "title": "Migrate to Python 3.12",
-                "description": "## Summary\nUpgrade all services to Python 3.12.",
-                "priority": "low", "labels": ["planned", "maintenance"], "story_points": 2,
-                "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee",
+                "title": "Build notification preference center UI",
+                "description": "## Summary\nAllow users to manage per-channel notification preferences in settings.",
+                "priority": "medium", "labels": ["planned", "feature"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_RACHEL_TONG", "suggested_assignee_name": "Rachel Tong",
                 "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-51",
+                "status": "created", "jira_ticket_id": "PLT-69",
             },
             {
-                "title": "Document API versioning strategy",
-                "description": "## Summary\nWrite technical documentation for API versioning.",
+                "title": "Add distributed tracing with OpenTelemetry",
+                "description": "## Summary\nInstrument all services with OTEL spans and export to Jaeger.",
+                "priority": "medium", "labels": ["planned", "observability"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_DANIEL_KIM", "suggested_assignee_name": "Daniel Kim",
+                "origin_type": "planned", "trigger_mode": "automatic",
+                "status": "created", "jira_ticket_id": "PLT-70",
+            },
+            {
+                "title": "Implement search result ranking with BM25",
+                "description": "## Summary\nReplace TF-IDF scoring with BM25 for better relevance ranking.",
+                "priority": "medium", "labels": ["planned", "feature"], "story_points": 5,
+                "suggested_assignee_slack_id": "U_MARCO_DIAZ", "suggested_assignee_name": "Marco Diaz",
+                "origin_type": "planned", "trigger_mode": "automatic",
+                "status": "created", "jira_ticket_id": "PLT-71",
+            },
+            {
+                "title": "Add DKIM signing to outbound emails",
+                "description": "## Summary\nImprove email deliverability by signing outbound mail with DKIM.",
+                "priority": "low", "labels": ["planned", "security"], "story_points": 2,
+                "suggested_assignee_slack_id": "U_RACHEL_TONG", "suggested_assignee_name": "Rachel Tong",
+                "origin_type": "planned", "trigger_mode": "automatic",
+                "status": "created", "jira_ticket_id": "PLT-72",
+            },
+            {
+                "title": "Write runbook for payment incident response",
+                "description": "## Summary\nDocument on-call steps for payment processing outages.",
                 "priority": "low", "labels": ["planned", "documentation"], "story_points": 1,
-                "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel",
+                "suggested_assignee_slack_id": "U_PRIYA_SHARMA", "suggested_assignee_name": "Priya Sharma",
                 "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-52",
+                "status": "created", "jira_ticket_id": "PLT-73",
             },
             {
-                "title": "Implement feature flags service",
-                "description": "## Summary\nBuild internal feature flags for gradual rollouts.",
-                "priority": "high", "labels": ["planned", "infrastructure"], "story_points": 3,
-                "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen",
-                "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-53",
-            },
-            {
-                "title": "Add GraphQL subscriptions support",
-                "description": "## Summary\nImplement real-time GraphQL subscriptions.",
-                "priority": "medium", "labels": ["planned", "feature"], "story_points": 3,
-                "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson",
-                "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-54",
-            },
-            {
-                "title": "Implement retry logic for external APIs",
-                "description": "## Summary\nAdd exponential backoff retry for third-party API calls.",
-                "priority": "medium", "labels": ["planned", "reliability"], "story_points": 2,
-                "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee",
-                "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-55",
-            },
-            {
-                "title": "Add health check endpoints to all services",
-                "description": "## Summary\nStandardize health check endpoints across services.",
+                "title": "Enforce resource quotas per namespace in k8s",
+                "description": "## Summary\nPrevent noisy-neighbour issues by adding ResourceQuota per namespace.",
                 "priority": "low", "labels": ["planned", "infrastructure"], "story_points": 2,
-                "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen",
+                "suggested_assignee_slack_id": "U_DANIEL_KIM", "suggested_assignee_name": "Daniel Kim",
                 "origin_type": "planned", "trigger_mode": "automatic",
-                "status": "created", "jira_ticket_id": "ENG-56",
+                "status": "created", "jira_ticket_id": "PLT-74",
+            },
+            {
+                "title": "Add webhook retry dashboard to admin panel",
+                "description": "## Summary\nLet support staff inspect and manually retry failed webhook deliveries.",
+                "priority": "low", "labels": ["planned", "feature"], "story_points": 2,
+                "suggested_assignee_slack_id": "U_MARCO_DIAZ", "suggested_assignee_name": "Marco Diaz",
+                "origin_type": "planned", "trigger_mode": "automatic",
+                "status": "created", "jira_ticket_id": "PLT-75",
+            },
+            {
+                "title": "Implement circuit breaker for external payment providers",
+                "description": "## Summary\nAdd circuit breaker pattern to prevent cascade failures when payment providers are degraded.",
+                "priority": "high", "labels": ["planned", "reliability"], "story_points": 3,
+                "suggested_assignee_slack_id": "U_PRIYA_SHARMA", "suggested_assignee_name": "Priya Sharma",
+                "origin_type": "planned", "trigger_mode": "automatic",
+                "status": "created", "jira_ticket_id": "PLT-76",
             },
         ]
 
@@ -477,26 +474,26 @@ async def seed_historical_tasks_and_tickets():
         await session.flush()
 
         for task, ticket_data in zip(task_objs, current_tickets):
-            ticket = Ticket(detected_task_id=task.id, sprint_id=sprint_14.id if sprint_14 else None, **ticket_data)
+            ticket = Ticket(detected_task_id=task.id, sprint_id=sprint_23.id if sprint_23 else None, **ticket_data)
             session.add(ticket)
 
-        # Seed Sprint 12 tickets (no thread/task needed - historical)
-        for ticket_data in sprint_12_tickets:
-            ticket = Ticket(sprint_id=sprint_12.id if sprint_12 else None, **ticket_data)
+        # Seed Sprint 21 tickets (no thread/task needed - historical)
+        for ticket_data in sprint_21_tickets:
+            ticket = Ticket(sprint_id=sprint_21.id if sprint_21 else None, **ticket_data)
             session.add(ticket)
 
-        # Seed Sprint 13 tickets
-        for ticket_data in sprint_13_tickets:
-            ticket = Ticket(sprint_id=sprint_13.id if sprint_13 else None, **ticket_data)
+        # Seed Sprint 22 tickets
+        for ticket_data in sprint_22_tickets:
+            ticket = Ticket(sprint_id=sprint_22.id if sprint_22 else None, **ticket_data)
             session.add(ticket)
 
-        # Seed Sprint 14 planned tickets (from Jira sprint planning)
-        for ticket_data in sprint_14_planned_tickets:
-            ticket = Ticket(sprint_id=sprint_14.id if sprint_14 else None, **ticket_data)
+        # Seed Sprint 23 planned tickets (from Jira sprint planning)
+        for ticket_data in sprint_23_planned_tickets:
+            ticket = Ticket(sprint_id=sprint_23.id if sprint_23 else None, **ticket_data)
             session.add(ticket)
 
         await session.commit()
-        total_tickets = len(current_tickets) + len(sprint_12_tickets) + len(sprint_13_tickets) + len(sprint_14_planned_tickets)
+        total_tickets = len(current_tickets) + len(sprint_21_tickets) + len(sprint_22_tickets) + len(sprint_23_planned_tickets)
         print(f"Seeded {len(thread_objs)} threads, {len(task_objs)} tasks, and {total_tickets} tickets across 3 sprints")
 
 
