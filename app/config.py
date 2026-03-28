@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     anthropic_api_key: str
 
     github_token: str = ""
+    github_repo_owner: str = ""
+    github_repo_name: str = ""
 
     # Jira
     jira_email: str = ""

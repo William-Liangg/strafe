@@ -23,3 +23,6 @@ class ExpertiseMap(Base):
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # GitHub-derived fields (populated by /expertise/sync)
+    github_login: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)
