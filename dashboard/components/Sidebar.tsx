@@ -2,107 +2,58 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  Bot,
-  Ticket,
-  BarChart3,
-  GitBranch,
-  Hash,
-  Users,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useAgentStatus } from '@/lib/hooks'
+import { Bot, Ticket, BarChart3, FileText, Hash, Users } from 'lucide-react'
 
 const navItems = [
-  { href: '/', label: 'Agent', icon: Bot },
-  { href: '/tickets', label: 'Tickets', icon: Ticket },
-  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/sprints', label: 'Sprints', icon: GitBranch },
-  { href: '/channels', label: 'Channels', icon: Hash },
-  { href: '/engineers', label: 'Engineers', icon: Users },
+  { href: '/', label: 'Live Feed', Icon: Bot },
+  { href: '/tickets', label: 'Tickets', Icon: Ticket },
+  { href: '/analytics', label: 'Analytics', Icon: BarChart3 },
+  { href: '/report', label: 'Sprint Report', Icon: FileText },
+  { href: '/channels', label: 'Channels', Icon: Hash },
+  { href: '/engineers', label: 'Engineers', Icon: Users },
 ]
-
-function AgentStatusIndicator() {
-  const { data: agentStatus } = useAgentStatus()
-
-  const getStatusColor = () => {
-    if (!agentStatus) return 'bg-gray-500'
-    switch (agentStatus.agent_status) {
-      case 'active':
-        return 'bg-green-500'
-      case 'idle':
-        return 'bg-yellow-500'
-      case 'offline':
-        return 'bg-red-500'
-      default:
-        return 'bg-gray-500'
-    }
-  }
-
-  const getStatusLabel = () => {
-    if (!agentStatus) return 'Loading...'
-    switch (agentStatus.agent_status) {
-      case 'active':
-        return 'Agent active'
-      case 'idle':
-        return 'Agent idle'
-      case 'offline':
-        return 'Agent offline'
-      default:
-        return 'Unknown'
-    }
-  }
-
-  return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#1f1f1f]">
-      <span className={cn('w-2 h-2 rounded-full animate-pulse', getStatusColor())} />
-      <span className="text-xs text-gray-400">{getStatusLabel()}</span>
-    </div>
-  )
-}
 
 export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-[220px] bg-[#0a0a0a] border-r border-[#1f1f1f] flex flex-col">
-      <div className="p-5">
-        <h1 className="text-white text-xl font-bold">Strafe</h1>
-        <p className="text-gray-500 text-sm">Sprint Intelligence</p>
+    <aside
+      className="fixed left-0 top-0 h-full w-64 border-r-4 border-black bg-slate-900 z-50 flex flex-col p-4 gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+      style={{ fontFamily: 'var(--font-space-grotesk)' }}
+    >
+      <div className="mb-8 p-2 border-b-2 border-white/10">
+        <h1 className="text-2xl font-black tracking-tighter text-white">Strafe</h1>
+        <p className="text-xs text-slate-400 font-medium">V1.0.4</p>
       </div>
 
-      <nav className="flex-1 px-3 py-4">
-        <ul className="space-y-1">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href
-            const Icon = item.icon
-
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-white text-black'
-                      : 'text-gray-400 hover:text-white hover:bg-[#1f1f1f]'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
+      <nav className="flex-1 flex flex-col gap-2">
+        {navItems.map(({ href, label, Icon }) => {
+          const isActive = pathname === href
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={
+                isActive
+                  ? 'flex items-center gap-3 px-4 py-3 bg-violet-600 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-bold transition-transform hover:translate-x-1 hover:-translate-y-1'
+                  : 'flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-all hover:translate-x-1 hover:-translate-y-1'
+              }
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+              <span>{label}</span>
+            </Link>
+          )
+        })}
       </nav>
 
-      <div className="px-3 pb-3">
-        <AgentStatusIndicator />
-      </div>
-
-      <div className="p-5 text-xs text-gray-600">
-        Strafe v0.1 · YHacks 2026
+      <div className="mt-auto pt-4 border-t-2 border-white/10 flex items-center gap-3">
+        <div className="w-10 h-10 shrink-0 border-2 border-black bg-violet-400 flex items-center justify-center font-black text-black text-sm">
+          MP
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm font-bold text-white truncate">Maya Patel</span>
+          <span className="text-xs text-slate-400">Lead Architect</span>
+        </div>
       </div>
     </aside>
   )

@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -26,15 +26,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${spaceGrotesk.variable} ${inter.variable} dark`}
     >
-      <body className="min-h-full bg-[#fafafa]">
+      <body className="min-h-full bg-[#060e20] text-[#dee5ff]">
         <Sidebar />
-        <main className="ml-[220px] p-8">
-          <div className="max-w-[1200px] mx-auto">
-            {children}
-          </div>
-        </main>
+        <div className="ml-64">{children}</div>
       </body>
     </html>
   );
