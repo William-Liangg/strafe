@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     jira_project_key: str = "ENG"
     jira_board_id: int = 1
 
+    # Google Calendar
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/api/auth/google/callback"
+
     # App
     debug: bool = False
 
