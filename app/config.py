@@ -16,6 +16,15 @@ class Settings(BaseSettings):
     # Anthropic
     anthropic_api_key: str
 
+    github_token: str = ""
+
+    # Jira
+    jira_email: str = ""
+    jira_api_token: str = ""
+    jira_base_url: str = "https://yourworkspace.atlassian.net"
+    jira_project_key: str = "ENG"
+    jira_board_id: int = 1
+
     # App
     debug: bool = False
 

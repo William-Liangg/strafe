@@ -36,3 +36,8 @@ class DetectedTask(Base):
     thread: Mapped["SlackThread"] = relationship(
         "SlackThread", back_populates="detected_tasks"
     )
+
+    # Relationship to ticket
+    ticket: Mapped["Ticket"] = relationship(
+        "Ticket", back_populates="detected_task", uselist=False
+    )

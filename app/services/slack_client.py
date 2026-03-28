@@ -66,9 +66,68 @@ class SlackClientService:
 
             username = user_cache[user_id]
             text = msg.get("text", "")
-            formatted_messages.append(f"{username}: {text}")
+            ts = msg.get("ts", "")
+            formatted_messages.append(f"[{ts}] {username}: {text}")
 
         return "\n".join(formatted_messages)
+
+    def add_reaction(self, channel_id: str, timestamp: str, reaction: str) -> bool:
+        """Add a reaction to a message."""
+        try:
+            self.client.reactions_add(
+                channel=channel_id,
+                timestamp=timestamp,
+                name=reaction,
+            )
+            return True
+        except SlackApiError as e:
+            print(f"Error adding reaction: {e}")
+            return False
+
+    def send_dm(self, user_id: str, text: str) -> bool:
+        """Send a direct message to a user."""
+        try:
+            # Open DM channel
+            response = self.client.conversations_open(users=[user_id])
+            channel_id = response.get("channel", {}).get("id")
+
+            if not channel_id:
+                print(f"Could not open DM channel for user {user_id}")
+                return False
+
+            # Send message
+            self.client.chat_postMessage(channel=channel_id, text=text)
+            return True
+        except SlackApiError as e:
+            print(f"Error sending DM: {e}")
+            return False
+
+    def get_permalink(self, channel_id: str, message_ts: str) -> str | None:
+        """Get the permalink URL for a message."""
+        try:
+            response = self.client.chat_getPermalink(
+                channel=channel_id,
+                message_ts=message_ts,
+            )
+            return response.get("permalink")
+        except SlackApiError as e:
+            print(f"Error getting permalink: {e}")
+            return None
+
+    def get_message(self, channel_id: str, message_ts: str) -> dict | None:
+        """Get a single message by timestamp."""
+        try:
+            response = self.client.conversations_history(
+                channel=channel_id,
+                latest=message_ts,
+                limit=1,
+                inclusive=True,
+            )
+            messages = response.get("messages", [])
+            return messages[0] if messages else None
+        except SlackApiError as e:
+            print(f"Error fetching message: {e}")
+            return None
 
 
 # Singleton instance

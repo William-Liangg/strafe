@@ -7,10 +7,10 @@ from app.services.slack_client import get_slack_client
 from app.services.claude_classifier import get_classifier
 
 
-async def should_analyze_thread(channel_id: str, thread_ts: str) -> tuple[bool, str | None]:
+async def should_analyze_thread(channel_id: str, thread_ts: str) -> tuple[bool, str | None, str | None]:
     """
     Check if a thread should be analyzed based on channel config and reply count.
-    Returns (should_analyze, workspace_id).
+    Returns (should_analyze, workspace_id, channel_name).
     """
     async with async_session() as session:
         # Get channel config
@@ -21,7 +21,7 @@ async def should_analyze_thread(channel_id: str, thread_ts: str) -> tuple[bool, 
 
         # If channel not configured or monitoring disabled, skip
         if not channel_config or not channel_config.monitoring_active:
-            return False, None
+            return False, None, None
 
         # Get or create thread record
         thread_result = await session.execute(
@@ -37,7 +37,7 @@ async def should_analyze_thread(channel_id: str, thread_ts: str) -> tuple[bool, 
         messages = slack_client.get_thread_messages(channel_id, thread_ts)
 
         if not messages:
-            return False, None
+            return False, None, None
 
         reply_count = len(messages) - 1  # Exclude parent message
 
@@ -57,7 +57,21 @@ async def should_analyze_thread(channel_id: str, thread_ts: str) -> tuple[bool, 
 
         # Check if meets reply threshold and hasn't been analyzed yet
         if reply_count >= channel_config.min_replies and thread.last_analyzed_at is None:
-            return True, channel_config.workspace_id
+            return True, channel_config.workspace_id, channel_config.channel_name
+
+        return False, None, None
+
+
+async def is_channel_monitored(channel_id: str) -> tuple[bool, str | None]:
+    """Check if a channel is being monitored. Returns (is_monitored, channel_name)."""
+    async with async_session() as session:
+        config = await session.execute(
+            select(ChannelConfig).where(ChannelConfig.channel_id == channel_id)
+        )
+        channel_config = config.scalar_one_or_none()
+
+        if channel_config and channel_config.monitoring_active:
+            return True, channel_config.channel_name
 
         return False, None
 
