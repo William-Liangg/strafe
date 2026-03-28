@@ -2,14 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bot, Ticket, BarChart3, FileText, Hash, Users, GitBranch } from 'lucide-react'
+import { Bot, Ticket, Users, GitBranch } from 'lucide-react'
 
 const navItems = [
   { href: '/', label: 'Live Feed', Icon: Bot },
   { href: '/tickets', label: 'Tickets', Icon: Ticket },
-  { href: '/analytics', label: 'Analytics', Icon: BarChart3 },
-  { href: '/report', label: 'Sprint Report', Icon: FileText },
-  { href: '/channels', label: 'Channels', Icon: Hash },
   { href: '/engineers', label: 'Engineers', Icon: Users },
   { href: '/expertise', label: 'Expertise', Icon: GitBranch },
 ]
