@@ -205,11 +205,20 @@ export default function TicketsPage() {
                               ticket.status === 'draft' ? 'animate-pulse' : ''
                             }`}
                           />
-                          <span
-                            className="font-bold text-base tracking-tight text-white line-clamp-1"
-                          >
-                            {ticket.title}
-                          </span>
+                          <div className="flex flex-col">
+                            <span
+                              className="font-bold text-base tracking-tight text-white line-clamp-1"
+                            >
+                              {ticket.title}
+                            </span>
+                            {(ticket.story_points || ticket.estimated_hours) && (
+                              <span className="text-[#6d758c] text-[10px] font-bold uppercase tracking-widest block mt-0.5">
+                                {ticket.story_points ? `${ticket.story_points} PTS` : ''}
+                                {ticket.story_points && ticket.estimated_hours ? ' · ' : ''}
+                                {ticket.estimated_hours ? `~${ticket.estimated_hours}H EST` : ''}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-5">

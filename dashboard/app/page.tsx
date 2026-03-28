@@ -96,6 +96,16 @@ function DraftTicketCard({
             <span className="font-black text-[#bd9dff] text-sm" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
               {channelDisplay}
             </span>
+            {(ticket.story_points || ticket.estimated_hours) && (
+              <>
+                <span className="text-[#40485d] text-xs">•</span>
+                <span className="font-bold text-[#6d758c] text-xs uppercase tracking-widest mt-0.5">
+                  {ticket.story_points ? `${ticket.story_points} pts` : ''}
+                  {ticket.story_points && ticket.estimated_hours ? ' · ' : ''}
+                  {ticket.estimated_hours ? `~${ticket.estimated_hours}h` : ''}
+                </span>
+              </>
+            )}
           </div>
           <h3
             className="text-xl font-black leading-tight text-white tracking-tight"
@@ -182,6 +192,16 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
             <span className="font-black text-[#a3aac4] text-sm" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
               {channelDisplay}
             </span>
+            {(decision.story_points || decision.estimated_hours) && (
+              <>
+                <span className="text-[#40485d] text-xs">•</span>
+                <span className="font-bold text-[#6d758c] text-xs uppercase tracking-widest mt-0.5">
+                  {decision.story_points ? `${decision.story_points} pts` : ''}
+                  {decision.story_points && decision.estimated_hours ? ' · ' : ''}
+                  {decision.estimated_hours ? `~${decision.estimated_hours}h` : ''}
+                </span>
+              </>
+            )}
           </div>
           <h3
             className="text-xl font-black leading-tight text-white tracking-tight"
@@ -341,7 +361,7 @@ export default function AgentPage() {
   const draftTickets = ticketsData?.tickets.filter((t) => t.status === 'draft') ?? []
 
   const getReasoningForTicket = (ticketId: string) =>
-    decisions.find((d) => d.ticket_id === ticketId)?.reasoning
+    decisions.find((d: AgentDecision) => d.ticket_id === ticketId)?.reasoning
 
   const handleApprove = async (ticket: Ticket) => {
     setApprovingId(ticket.id)
@@ -375,7 +395,7 @@ export default function AgentPage() {
 
   // Decisions that aren't draft tickets (already actioned)
   const completedDecisions = decisions.filter(
-    (d) => d.action !== 'flagged_for_review' || !draftTickets.find((t) => t.id === d.ticket_id)
+    (d: AgentDecision) => d.action !== 'flagged_for_review' || !draftTickets.find((t) => t.id === d.ticket_id)
   )
 
   const confidencePct = agentStatus?.avg_confidence_today
@@ -457,7 +477,7 @@ export default function AgentPage() {
           ))}
 
           {/* Completed decisions */}
-          {completedDecisions.slice(0, 20).map((decision) => (
+          {completedDecisions.slice(0, 20).map((decision: AgentDecision) => (
             <DecisionCard key={decision.id} decision={decision} />
           ))}
         </section>
