@@ -14,6 +14,7 @@ from app.services.classification_service import (
     get_adhoc_trend,
     get_top_source_channels,
     get_analytics_summary,
+    get_engineer_workload_breakdown,
 )
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,34 @@ class EngineerLoadItem(BaseModel):
 class EngineerLoadResponse(BaseModel):
     engineers: list[EngineerLoadItem]
     sprint_id: str | None
+
+
+class EngineerWorkloadItem(BaseModel):
+    engineer_name: str
+    engineer_slack_id: str | None
+    adhoc_tickets: int
+    adhoc_points: int
+    planned_tickets: int
+    planned_points: int
+    total_points: int
+    adhoc_percentage: float
+    top_domain: str | None
+    trend: str  # "up" | "down" | "flat"
+    last_sprint_adhoc_points: int
+
+
+class TeamStats(BaseModel):
+    total_adhoc_points: int
+    most_impacted_name: str | None
+    most_impacted_points: int
+    engineers_with_adhoc: int
+    total_engineers: int
+    pct_carrying_adhoc: float
+
+
+class EngineerWorkloadResponse(BaseModel):
+    engineers: list[EngineerWorkloadItem]
+    team_stats: TeamStats
 
 
 class TrendItem(BaseModel):
@@ -157,15 +186,31 @@ async def get_channels(
     )
 
 
-@router.get("/engineers", response_model=EngineerLoadResponse)
+@router.get("/engineers", response_model=EngineerWorkloadResponse)
 async def get_engineers(
-    sprint_id: str | None = None,
+    db: AsyncSession = Depends(get_db),
 ):
-    """Get engineer adhoc load rankings."""
-    engineers = await get_engineer_adhoc_load(sprint_id)
-    return EngineerLoadResponse(
-        engineers=[EngineerLoadItem(**e) for e in engineers],
-        sprint_id=sprint_id,
+    """Get comprehensive engineer workload for enterprise dashboard."""
+    # Get active sprint
+    active_result = await db.execute(
+        select(Sprint).where(Sprint.state == "active").limit(1)
+    )
+    active_sprint = active_result.scalar_one_or_none()
+
+    # Get last closed sprint for trend comparison
+    last_result = await db.execute(
+        select(Sprint).where(Sprint.state == "closed").order_by(Sprint.end_date.desc()).limit(1)
+    )
+    last_sprint = last_result.scalar_one_or_none()
+
+    data = await get_engineer_workload_breakdown(
+        current_sprint_id=str(active_sprint.id) if active_sprint else None,
+        last_sprint_id=str(last_sprint.id) if last_sprint else None,
+    )
+
+    return EngineerWorkloadResponse(
+        engineers=[EngineerWorkloadItem(**e) for e in data["engineers"]],
+        team_stats=TeamStats(**data["team_stats"]),
     )
 
 

@@ -216,6 +216,141 @@ async def get_top_source_channels(sprint_id: str | None = None, limit: int = 5) 
         ]
 
 
+async def get_engineer_workload_breakdown(current_sprint_id: str | None = None, last_sprint_id: str | None = None) -> dict:
+    """Get comprehensive engineer workload data for enterprise dashboard."""
+    from app.models import ExpertiseMap
+
+    async with async_session() as session:
+        # Get all engineers with any tickets in current sprint (both adhoc and planned)
+        base_query = select(
+            Ticket.suggested_assignee_name,
+            Ticket.suggested_assignee_slack_id,
+            Ticket.origin_type,
+            func.count(Ticket.id).label("ticket_count"),
+            func.coalesce(func.sum(Ticket.story_points), 0).label("total_points")
+        ).where(
+            Ticket.suggested_assignee_name.isnot(None)
+        )
+
+        if current_sprint_id:
+            base_query = base_query.where(Ticket.sprint_id == UUID(current_sprint_id))
+
+        base_query = base_query.group_by(
+            Ticket.suggested_assignee_name,
+            Ticket.suggested_assignee_slack_id,
+            Ticket.origin_type
+        )
+
+        result = await session.execute(base_query)
+        rows = result.all()
+
+        # Aggregate by engineer
+        engineer_data = {}
+        for row in rows:
+            name = row[0]
+            slack_id = row[1]
+            origin = row[2]
+            count = row[3]
+            points = row[4]
+
+            if name not in engineer_data:
+                engineer_data[name] = {
+                    "engineer_name": name,
+                    "engineer_slack_id": slack_id,
+                    "adhoc_tickets": 0,
+                    "adhoc_points": 0,
+                    "planned_tickets": 0,
+                    "planned_points": 0,
+                }
+
+            if origin == "adhoc":
+                engineer_data[name]["adhoc_tickets"] = count
+                engineer_data[name]["adhoc_points"] = points
+            else:
+                engineer_data[name]["planned_tickets"] = count
+                engineer_data[name]["planned_points"] = points
+
+        # Get expertise map for top domains
+        expertise_result = await session.execute(
+            select(ExpertiseMap).order_by(ExpertiseMap.score.desc())
+        )
+        expertise_rows = expertise_result.scalars().all()
+
+        # Map engineer -> top domain
+        engineer_domains = {}
+        for exp in expertise_rows:
+            if exp.engineer_name not in engineer_domains:
+                engineer_domains[exp.engineer_name] = exp.service_or_domain
+
+        # Get last sprint adhoc points for trend comparison
+        last_sprint_adhoc = {}
+        if last_sprint_id:
+            last_result = await session.execute(
+                select(
+                    Ticket.suggested_assignee_name,
+                    func.coalesce(func.sum(Ticket.story_points), 0).label("adhoc_points")
+                ).where(
+                    Ticket.sprint_id == UUID(last_sprint_id),
+                    Ticket.origin_type == "adhoc",
+                    Ticket.suggested_assignee_name.isnot(None)
+                ).group_by(Ticket.suggested_assignee_name)
+            )
+            for row in last_result.all():
+                last_sprint_adhoc[row[0]] = row[1]
+
+        # Build final engineer list
+        engineers = []
+        total_team_adhoc_points = 0
+        engineers_with_adhoc = 0
+
+        for name, data in engineer_data.items():
+            total_points = data["adhoc_points"] + data["planned_points"]
+            adhoc_percentage = (data["adhoc_points"] / total_points * 100) if total_points > 0 else 0.0
+
+            last_adhoc = last_sprint_adhoc.get(name, 0)
+            trend = "up" if data["adhoc_points"] > last_adhoc else "down" if data["adhoc_points"] < last_adhoc else "flat"
+
+            total_team_adhoc_points += data["adhoc_points"]
+            if data["adhoc_tickets"] > 0:
+                engineers_with_adhoc += 1
+
+            engineers.append({
+                "engineer_name": name,
+                "engineer_slack_id": data["engineer_slack_id"],
+                "adhoc_tickets": data["adhoc_tickets"],
+                "adhoc_points": data["adhoc_points"],
+                "planned_tickets": data["planned_tickets"],
+                "planned_points": data["planned_points"],
+                "total_points": total_points,
+                "adhoc_percentage": round(adhoc_percentage, 1),
+                "top_domain": engineer_domains.get(name),
+                "trend": trend,
+                "last_sprint_adhoc_points": last_adhoc,
+            })
+
+        # Sort by adhoc points descending
+        engineers.sort(key=lambda x: x["adhoc_points"], reverse=True)
+
+        # Find most impacted
+        most_impacted = engineers[0] if engineers else None
+
+        # Team stats
+        total_engineers = len(engineers)
+        pct_with_adhoc = (engineers_with_adhoc / total_engineers * 100) if total_engineers > 0 else 0.0
+
+        return {
+            "engineers": engineers,
+            "team_stats": {
+                "total_adhoc_points": total_team_adhoc_points,
+                "most_impacted_name": most_impacted["engineer_name"] if most_impacted else None,
+                "most_impacted_points": most_impacted["adhoc_points"] if most_impacted else 0,
+                "engineers_with_adhoc": engineers_with_adhoc,
+                "total_engineers": total_engineers,
+                "pct_carrying_adhoc": round(pct_with_adhoc, 0),
+            }
+        }
+
+
 async def get_analytics_summary() -> dict:
     """Get full dashboard summary in a single call."""
     async with async_session() as session:
