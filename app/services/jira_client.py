@@ -202,6 +202,75 @@ class JiraClient:
         """Get a ticket by key."""
         return await self._request("GET", f"/rest/api/3/issue/{ticket_key}")
 
+    async def get_webhooks(self) -> list[dict]:
+        """Get all registered webhooks."""
+        try:
+            result = await self._request("GET", "/rest/webhooks/1.0/webhook")
+            return result if isinstance(result, list) else []
+        except JiraClientError as e:
+            logger.warning(f"Could not get webhooks: {e.message}")
+            return []
+
+    async def register_webhook(self, callback_url: str) -> dict | None:
+        """Register Strafe's webhook with Jira."""
+        # Check if already registered
+        existing_webhooks = await self.get_webhooks()
+        for webhook in existing_webhooks:
+            if webhook.get("url") == callback_url:
+                logger.info(f"Webhook already registered: {webhook.get('id')}")
+                return webhook
+
+        # Register new webhook
+        payload = {
+            "name": "Strafe Sprint Intelligence",
+            "url": callback_url,
+            "events": [
+                "jira:issue_created",
+                "jira:issue_updated",
+                "sprint_started",
+                "sprint_closed",
+            ],
+            "filters": {
+                "issue-related-events-section": f"project = {self.project_key}"
+            },
+            "excludeBody": False,
+        }
+
+        try:
+            result = await self._request("POST", "/rest/webhooks/1.0/webhook", json_data=payload)
+            logger.info(f"Registered Jira webhook: {result.get('id', result)}")
+            return result
+        except JiraClientError as e:
+            logger.error(f"Failed to register webhook: {e.message}")
+            return None
+
+    async def delete_webhook(self, webhook_id: int) -> bool:
+        """Delete a webhook by ID."""
+        try:
+            await self._request("DELETE", f"/rest/webhooks/1.0/webhook/{webhook_id}")
+            logger.info(f"Deleted webhook {webhook_id}")
+            return True
+        except JiraClientError as e:
+            logger.warning(f"Could not delete webhook: {e.message}")
+            return False
+
+
+async def register_jira_webhooks(base_url: str) -> bool:
+    """Register Strafe's webhooks with Jira. Called on startup."""
+    from app.config import get_settings
+    settings = get_settings()
+
+    # Skip if Jira not configured
+    if not settings.jira_email or not settings.jira_api_token:
+        logger.info("Jira not configured, skipping webhook registration")
+        return False
+
+    callback_url = f"{base_url.rstrip('/')}/webhooks/jira"
+    client = get_jira_client()
+
+    result = await client.register_webhook(callback_url)
+    return result is not None
+
 
 # Singleton instance
 _jira_client: JiraClient | None = None

@@ -249,10 +249,31 @@ async def approve_ticket(
         ticket.jira_ticket_url = jira_result["url"]
         ticket.status = TicketStatus.CREATED
 
-        # Try to add to active sprint
+        # Try to add to active sprint and assign sprint to ticket
         sprint = await jira_client.get_active_sprint()
         if sprint:
             await jira_client.add_to_sprint(jira_result["key"], sprint["id"])
+
+            # Look up or create sprint record in our DB
+            from app.models import Sprint
+            jira_sprint_id = sprint.get("id")
+            if jira_sprint_id:
+                sprint_result = await db.execute(
+                    select(Sprint).where(Sprint.jira_sprint_id == jira_sprint_id)
+                )
+                db_sprint = sprint_result.scalar_one_or_none()
+
+                if not db_sprint:
+                    # Create sprint record
+                    db_sprint = Sprint(
+                        jira_sprint_id=jira_sprint_id,
+                        name=sprint.get("name", f"Sprint {jira_sprint_id}"),
+                        state="active",
+                    )
+                    db.add(db_sprint)
+                    await db.flush()
+
+                ticket.sprint_id = db_sprint.id
 
         await db.commit()
 

@@ -84,6 +84,16 @@ class Ticket(Base):
     # Rejection tracking
     rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Sprint assignment
+    sprint_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("sprints.id"), nullable=True
+    )
+
+    # Completion tracking
+    completed_at: Mapped[DateTime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Timestamps
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -96,3 +106,6 @@ class Ticket(Base):
     detected_task: Mapped["DetectedTask"] = relationship(
         "DetectedTask", back_populates="ticket"
     )
+
+    # Relationship to sprint
+    sprint: Mapped["Sprint"] = relationship("Sprint", back_populates="tickets")
