@@ -3,21 +3,63 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard,
+  Bot,
   Ticket,
+  BarChart3,
   GitBranch,
   Hash,
   Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAgentStatus } from '@/lib/hooks'
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/', label: 'Agent', icon: Bot },
   { href: '/tickets', label: 'Tickets', icon: Ticket },
+  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/sprints', label: 'Sprints', icon: GitBranch },
   { href: '/channels', label: 'Channels', icon: Hash },
   { href: '/engineers', label: 'Engineers', icon: Users },
 ]
+
+function AgentStatusIndicator() {
+  const { data: agentStatus } = useAgentStatus()
+
+  const getStatusColor = () => {
+    if (!agentStatus) return 'bg-gray-500'
+    switch (agentStatus.agent_status) {
+      case 'active':
+        return 'bg-green-500'
+      case 'idle':
+        return 'bg-yellow-500'
+      case 'offline':
+        return 'bg-red-500'
+      default:
+        return 'bg-gray-500'
+    }
+  }
+
+  const getStatusLabel = () => {
+    if (!agentStatus) return 'Loading...'
+    switch (agentStatus.agent_status) {
+      case 'active':
+        return 'Agent active'
+      case 'idle':
+        return 'Agent idle'
+      case 'offline':
+        return 'Agent offline'
+      default:
+        return 'Unknown'
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#1f1f1f]">
+      <span className={cn('w-2 h-2 rounded-full animate-pulse', getStatusColor())} />
+      <span className="text-xs text-gray-400">{getStatusLabel()}</span>
+    </div>
+  )
+}
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -54,6 +96,10 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
+
+      <div className="px-3 pb-3">
+        <AgentStatusIndicator />
+      </div>
 
       <div className="p-5 text-xs text-gray-600">
         Strafe v0.1 · YHacks 2026

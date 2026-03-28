@@ -2,13 +2,48 @@
 
 import { useState, useMemo } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Search } from 'lucide-react'
+import { Search, Bot, UserCheck, Clock } from 'lucide-react'
 import { useTickets } from '@/lib/hooks'
 import { StatusBadge, PriorityBadge, OriginBadge } from '@/components/TicketBadge'
 import { TableSkeleton } from '@/components/LoadingSkeleton'
 import { ErrorState } from '@/components/ErrorState'
 import { TicketDetailPanel } from '@/components/TicketDetailPanel'
 import type { Ticket } from '@/lib/types'
+
+function DecisionBadge({ ticket }: { ticket: Ticket }) {
+  // Auto-approved: status=created and trigger_mode=automatic
+  if (ticket.status === 'created' && ticket.trigger_mode === 'automatic') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+        <Bot className="h-3 w-3" />
+        Auto
+      </span>
+    )
+  }
+
+  // Manager approved: status=created and not automatic
+  if (ticket.status === 'created') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+        <UserCheck className="h-3 w-3" />
+        Approved
+      </span>
+    )
+  }
+
+  // Pending: status=draft
+  if (ticket.status === 'draft') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+        <Clock className="h-3 w-3" />
+        Pending
+      </span>
+    )
+  }
+
+  // Rejected or other
+  return <span className="text-sm text-gray-400">—</span>
+}
 
 type StatusFilter = 'all' | 'draft' | 'created' | 'rejected'
 
@@ -119,6 +154,9 @@ export default function TicketsPage() {
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Status
                 </th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Decision
+                </th>
                 <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
                   Points
                 </th>
@@ -153,6 +191,9 @@ export default function TicketsPage() {
                   </td>
                   <td className="px-4 py-4">
                     <StatusBadge status={ticket.status} />
+                  </td>
+                  <td className="px-4 py-4">
+                    <DecisionBadge ticket={ticket} />
                   </td>
                   <td className="px-4 py-4 text-center">
                     <span className="text-sm text-gray-600">

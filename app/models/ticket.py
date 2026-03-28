@@ -109,3 +109,8 @@ class Ticket(Base):
 
     # Relationship to sprint
     sprint: Mapped["Sprint"] = relationship("Sprint", back_populates="tickets")
+
+    # Relationship to agent decision
+    agent_decision: Mapped["AgentDecision"] = relationship(
+        "AgentDecision", back_populates="ticket", uselist=False
+    )

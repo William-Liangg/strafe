@@ -4,6 +4,7 @@ from app.models.detected_task import DetectedTask
 from app.models.ticket import Ticket, TicketPriority, TicketStatus, OriginType, TriggerMode
 from app.models.expertise_map import ExpertiseMap
 from app.models.sprint import Sprint, SprintState
+from app.models.agent_decision import AgentDecision, AgentAction
 
 __all__ = [
     "ChannelConfig",
@@ -17,4 +18,6 @@ __all__ = [
     "ExpertiseMap",
     "Sprint",
     "SprintState",
+    "AgentDecision",
+    "AgentAction",
 ]

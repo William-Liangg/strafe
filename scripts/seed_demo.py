@@ -12,27 +12,37 @@ from app.models import (
     Ticket,
     ExpertiseMap,
     Sprint,
+    AgentDecision,
+    AgentAction,
 )
 
 
 async def seed_channel_configs():
-    """Seed channel configurations for demo."""
+    """Seed channel configurations for demo with auto-approve settings."""
     configs = [
         {
             "channel_id": "C_BACKEND_HELP",
             "channel_name": "#backend-help",
             "workspace_id": "T_DEMO_WORKSPACE",
-            "sensitivity": 0.6,  # High sensitivity
+            "sensitivity": 0.6,
             "monitoring_active": True,
             "min_replies": 2,
+            # Auto-approve settings
+            "auto_approve_threshold": 0.85,
+            "auto_approve_max_points": 3,
+            "manager_slack_id": "U_MANAGER",
         },
         {
             "channel_id": "C_SALES_ENG",
             "channel_name": "#sales-engineering",
             "workspace_id": "T_DEMO_WORKSPACE",
-            "sensitivity": 0.75,  # Medium sensitivity
+            "sensitivity": 0.75,
             "monitoring_active": True,
             "min_replies": 2,
+            # Auto-approve settings
+            "auto_approve_threshold": 0.80,
+            "auto_approve_max_points": 5,
+            "manager_slack_id": "U_MANAGER",
         },
         {
             "channel_id": "C_ENG_REQUESTS",
@@ -41,14 +51,22 @@ async def seed_channel_configs():
             "sensitivity": 0.6,
             "monitoring_active": True,
             "min_replies": 2,
+            # Auto-approve settings
+            "auto_approve_threshold": 0.90,
+            "auto_approve_max_points": 2,
+            "manager_slack_id": "U_MANAGER",
         },
         {
             "channel_id": "C_RANDOM",
             "channel_name": "#random",
             "workspace_id": "T_DEMO_WORKSPACE",
             "sensitivity": 0.9,
-            "monitoring_active": False,  # Disabled
+            "monitoring_active": False,
             "min_replies": 5,
+            # Auto-approve settings (disabled channel, but still set defaults)
+            "auto_approve_threshold": 0.95,
+            "auto_approve_max_points": 2,
+            "manager_slack_id": "U_MANAGER",
         },
     ]
 
@@ -57,7 +75,7 @@ async def seed_channel_configs():
             config = ChannelConfig(**config_data)
             session.add(config)
         await session.commit()
-        print(f"Seeded {len(configs)} channel configs")
+        print(f"  Seeded {len(configs)} channel configs (with auto-approve thresholds)")
 
 
 async def seed_expertise_map():
@@ -136,7 +154,7 @@ async def seed_expertise_map():
             expert = ExpertiseMap(**expert_data)
             session.add(expert)
         await session.commit()
-        print(f"Seeded {len(experts)} expertise map entries")
+        print(f"  Seeded {len(experts)} expertise map entries")
 
 
 async def seed_sprints():
@@ -150,7 +168,6 @@ async def seed_sprints():
             "state": "closed",
             "start_date": now - timedelta(weeks=5),
             "end_date": now - timedelta(weeks=3),
-            # Stored metrics for closed sprint
             "adhoc_count": 3,
             "planned_count": 15,
             "adhoc_percentage": 16.7,
@@ -164,7 +181,6 @@ async def seed_sprints():
             "state": "closed",
             "start_date": now - timedelta(weeks=3),
             "end_date": now - timedelta(weeks=1),
-            # Stored metrics for closed sprint
             "adhoc_count": 5,
             "planned_count": 15,
             "adhoc_percentage": 25.0,
@@ -178,7 +194,6 @@ async def seed_sprints():
             "state": "active",
             "start_date": now - timedelta(weeks=1),
             "end_date": now + timedelta(weeks=1),
-            # Store metrics for active sprint too (4 adhoc + 13 planned = 17 total, 23.5% adhoc)
             "adhoc_count": 4,
             "planned_count": 13,
             "adhoc_percentage": 23.5,
@@ -195,7 +210,7 @@ async def seed_sprints():
             session.add(sprint)
             sprints.append(sprint)
         await session.commit()
-        print(f"Seeded {len(sprints)} sprints")
+        print(f"  Seeded {len(sprints)} sprints")
         return sprints
 
 
@@ -213,7 +228,6 @@ async def seed_historical_tasks_and_tickets():
         sprint_14 = sprints.get(14)
 
         # --- Current Sprint (14) Tickets - 4 adhoc from Slack ---
-        # 2 from #sales-engineering (top source), 1 from #backend-help, 1 from #eng-requests
         current_threads = [
             {"thread_ts": "1711000001.000001", "channel_id": "C_SALES_ENG", "workspace_id": "T_DEMO_WORKSPACE", "reply_count": 4},
             {"thread_ts": "1711000002.000002", "channel_id": "C_SALES_ENG", "workspace_id": "T_DEMO_WORKSPACE", "reply_count": 3},
@@ -350,7 +364,7 @@ async def seed_historical_tasks_and_tickets():
             },
         ]
 
-        # --- Sprint 14 Planned Tickets (13 planned - from Jira sprint planning) ---
+        # --- Sprint 14 Planned Tickets (13 planned) ---
         sprint_14_planned_tickets = [
             {
                 "title": "Implement user dashboard redesign",
@@ -476,9 +490,13 @@ async def seed_historical_tasks_and_tickets():
 
         await session.flush()
 
+        ticket_objs = []
         for task, ticket_data in zip(task_objs, current_tickets):
             ticket = Ticket(detected_task_id=task.id, sprint_id=sprint_14.id if sprint_14 else None, **ticket_data)
             session.add(ticket)
+            ticket_objs.append(ticket)
+
+        await session.flush()
 
         # Seed Sprint 12 tickets (no thread/task needed - historical)
         for ticket_data in sprint_12_tickets:
@@ -490,33 +508,189 @@ async def seed_historical_tasks_and_tickets():
             ticket = Ticket(sprint_id=sprint_13.id if sprint_13 else None, **ticket_data)
             session.add(ticket)
 
-        # Seed Sprint 14 planned tickets (from Jira sprint planning)
+        # Seed Sprint 14 planned tickets
         for ticket_data in sprint_14_planned_tickets:
             ticket = Ticket(sprint_id=sprint_14.id if sprint_14 else None, **ticket_data)
             session.add(ticket)
 
         await session.commit()
-        total_tickets = len(current_tickets) + len(sprint_12_tickets) + len(sprint_13_tickets) + len(sprint_14_planned_tickets)
-        print(f"Seeded {len(thread_objs)} threads, {len(task_objs)} tasks, and {total_tickets} tickets across 3 sprints")
+        total_adhoc = len(current_tickets) + len(sprint_12_tickets) + len(sprint_13_tickets)
+        total_planned = len(sprint_14_planned_tickets)
+        total_tickets = total_adhoc + total_planned
+        print(f"  Seeded {len(thread_objs)} threads, {len(task_objs)} tasks")
+        print(f"  Seeded {total_tickets} tickets ({total_adhoc} adhoc, {total_planned} planned)")
+
+        # Return ticket objects for agent decision seeding
+        return ticket_objs, task_objs
+
+
+async def seed_agent_decisions(ticket_objs, task_objs):
+    """Seed agent decisions to show the agent's decision history."""
+    now = datetime.now(timezone.utc)
+
+    async with async_session() as session:
+        decisions = []
+
+        # 3 auto_assigned decisions (matching existing tickets that would have been auto-assigned)
+        # Note: We'll create decisions referencing the tickets we just created
+        auto_assigned_decisions = [
+            {
+                "ticket_id": ticket_objs[1].id if len(ticket_objs) > 1 else None,  # Orders pagination fix
+                "detected_task_id": task_objs[1].id if len(task_objs) > 1 else None,
+                "action": AgentAction.AUTO_ASSIGNED,
+                "confidence": 0.91,
+                "reasoning": "Assigned to Alex Chen based on 12 PRs on orders-service in the last 90 days. Confidence 91% exceeded the 80% auto-approve threshold and 3 story points is within the 5-point auto-approve limit.",
+                "assignee_name": "Alex Chen",
+                "assignee_reason": "12 PRs on orders-service in last 90 days",
+                "jira_ticket_id": "ENG-41",
+                "channel_name": "#sales-engineering",
+                "story_points": 3,
+                "auto_approved": True,
+                "created_at": now - timedelta(hours=6),
+            },
+            {
+                "ticket_id": ticket_objs[2].id if len(ticket_objs) > 2 else None,  # Discount code
+                "detected_task_id": task_objs[2].id if len(task_objs) > 2 else None,
+                "action": AgentAction.AUTO_ASSIGNED,
+                "confidence": 0.88,
+                "reasoning": "Assigned to Maya Patel based on 8 PRs on quotes-service in the last 90 days. Confidence 88% exceeded the 85% auto-approve threshold and 2 story points is within the 3-point auto-approve limit.",
+                "assignee_name": "Maya Patel",
+                "assignee_reason": "8 PRs on quotes-service in last 90 days",
+                "jira_ticket_id": "ENG-42",
+                "channel_name": "#backend-help",
+                "story_points": 2,
+                "auto_approved": True,
+                "created_at": now - timedelta(hours=4),
+            },
+            {
+                "ticket_id": ticket_objs[3].id if len(ticket_objs) > 3 else None,  # Auth tokens
+                "detected_task_id": task_objs[3].id if len(task_objs) > 3 else None,
+                "action": AgentAction.AUTO_ASSIGNED,
+                "confidence": 0.94,
+                "reasoning": "Assigned to Jordan Lee based on 15 PRs on auth-service in the last 90 days. Confidence 94% exceeded the 90% auto-approve threshold and 3 story points is within the 2-point auto-approve limit for #eng-requests. Auto-approved due to critical priority.",
+                "assignee_name": "Jordan Lee",
+                "assignee_reason": "15 PRs on auth-service in last 90 days",
+                "jira_ticket_id": "ENG-43",
+                "channel_name": "#eng-requests",
+                "story_points": 3,
+                "auto_approved": True,
+                "created_at": now - timedelta(hours=2),
+            },
+        ]
+
+        # 3 flagged_for_review decisions (complex tickets that needed human review)
+        flagged_decisions = [
+            {
+                "ticket_id": ticket_objs[0].id if len(ticket_objs) > 0 else None,  # Margin endpoint
+                "detected_task_id": task_objs[0].id if len(task_objs) > 0 else None,
+                "action": AgentAction.FLAGGED_FOR_REVIEW,
+                "confidence": 0.92,
+                "reasoning": "Flagged for manager review — estimated at 5 story points which exceeds the auto-approve limit of 5. Suggested assignee is Maya Patel based on quotes-service ownership.",
+                "assignee_name": "Maya Patel",
+                "assignee_reason": "8 PRs on quotes-service in last 90 days",
+                "jira_ticket_id": None,
+                "channel_name": "#sales-engineering",
+                "story_points": 5,
+                "auto_approved": False,
+                "created_at": now - timedelta(hours=8),
+            },
+            {
+                "action": AgentAction.FLAGGED_FOR_REVIEW,
+                "confidence": 0.86,
+                "reasoning": "Flagged for manager review — estimated at 8 story points which exceeds the auto-approve limit of 3. Suggested assignee is Sam Wilson based on reporting-api ownership.",
+                "assignee_name": "Sam Wilson",
+                "assignee_reason": "7 PRs on reporting-api in last 90 days",
+                "jira_ticket_id": None,
+                "channel_name": "#backend-help",
+                "story_points": 8,
+                "auto_approved": False,
+                "created_at": now - timedelta(days=1, hours=2),
+            },
+            {
+                "action": AgentAction.FLAGGED_FOR_REVIEW,
+                "confidence": 0.89,
+                "reasoning": "Flagged for manager review — estimated at 5 story points which exceeds the auto-approve limit of 3. Suggested assignee is Alex Chen based on auth-service familiarity.",
+                "assignee_name": "Alex Chen",
+                "assignee_reason": "Recent work on auth-related PRs",
+                "jira_ticket_id": None,
+                "channel_name": "#eng-requests",
+                "story_points": 5,
+                "auto_approved": False,
+                "created_at": now - timedelta(days=1, hours=6),
+            },
+        ]
+
+        # 2 dismissed decisions (noise that the agent correctly ignored)
+        dismissed_decisions = [
+            {
+                "action": AgentAction.DISMISSED,
+                "confidence": 0.23,
+                "reasoning": "Thread classified as a conversation with 23% confidence, below the 60% detection threshold for #backend-help. No ticket generated.",
+                "assignee_name": None,
+                "assignee_reason": None,
+                "jira_ticket_id": None,
+                "channel_name": "#random",
+                "story_points": None,
+                "auto_approved": False,
+                "created_at": now - timedelta(hours=5),
+            },
+            {
+                "action": AgentAction.DISMISSED,
+                "confidence": 0.61,
+                "reasoning": "Thread classified as a question with 61% confidence, below the 75% detection threshold for #sales-engineering. No ticket generated.",
+                "assignee_name": None,
+                "assignee_reason": None,
+                "jira_ticket_id": None,
+                "channel_name": "#sales-engineering",
+                "story_points": None,
+                "auto_approved": False,
+                "created_at": now - timedelta(hours=3),
+            },
+        ]
+
+        # Create all decisions
+        for decision_data in auto_assigned_decisions + flagged_decisions + dismissed_decisions:
+            decision = AgentDecision(**decision_data)
+            session.add(decision)
+            decisions.append(decision)
+
+        await session.commit()
+
+        auto_count = len(auto_assigned_decisions)
+        flagged_count = len(flagged_decisions)
+        dismissed_count = len(dismissed_decisions)
+        print(f"  Seeded {len(decisions)} agent decisions ({auto_count} auto-assigned, {flagged_count} flagged, {dismissed_count} dismissed)")
 
 
 async def main():
+    print("\n=== Strafe Demo Data Seeder ===\n")
+
     print("Initializing database...")
     await init_db()
 
-    print("Seeding channel configs...")
+    print("\n1. Seeding channel configs...")
     await seed_channel_configs()
 
-    print("Seeding expertise map...")
+    print("\n2. Seeding expertise map...")
     await seed_expertise_map()
 
-    print("Seeding sprints...")
+    print("\n3. Seeding sprints...")
     await seed_sprints()
 
-    print("Seeding historical tasks and tickets...")
-    await seed_historical_tasks_and_tickets()
+    print("\n4. Seeding historical tasks and tickets...")
+    ticket_objs, task_objs = await seed_historical_tasks_and_tickets()
 
-    print("Done!")
+    print("\n5. Seeding agent decisions...")
+    await seed_agent_decisions(ticket_objs, task_objs)
+
+    print("\n" + "=" * 40)
+    print("Done! Summary:")
+    print("  - 4 channel configs (with auto-approve thresholds)")
+    print("  - 8 expertise map entries")
+    print("  - 3 sprints")
+    print("  - 25 tickets (12 adhoc, 13 planned)")
+    print("  - 8 agent decisions (3 auto-assigned, 3 flagged, 2 dismissed)")
+    print("=" * 40 + "\n")
 
 
 if __name__ == "__main__":

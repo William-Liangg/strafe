@@ -41,3 +41,8 @@ class DetectedTask(Base):
     ticket: Mapped["Ticket"] = relationship(
         "Ticket", back_populates="detected_task", uselist=False
     )
+
+    # Relationship to agent decision
+    agent_decision: Mapped["AgentDecision"] = relationship(
+        "AgentDecision", back_populates="detected_task", uselist=False
+    )

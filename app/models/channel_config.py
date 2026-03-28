@@ -13,6 +13,12 @@ class ChannelConfig(Base):
     sensitivity: Mapped[float] = mapped_column(Float, default=0.7)
     monitoring_active: Mapped[bool] = mapped_column(Boolean, default=True)
     min_replies: Mapped[int] = mapped_column(Integer, default=2)
+
+    # Auto-approve settings
+    auto_approve_threshold: Mapped[float] = mapped_column(Float, default=0.85)
+    auto_approve_max_points: Mapped[int] = mapped_column(Integer, default=3)
+    manager_slack_id: Mapped[str | None] = mapped_column(String, nullable=True)
+
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
