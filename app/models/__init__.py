@@ -5,6 +5,7 @@ from app.models.ticket import Ticket, TicketPriority, TicketStatus, OriginType, 
 from app.models.expertise_map import ExpertiseMap
 from app.models.sprint import Sprint, SprintState
 from app.models.agent_decision import AgentDecision, AgentAction
+from app.models.github_sync import GithubSync
 
 __all__ = [
     "ChannelConfig",
@@ -20,4 +21,5 @@ __all__ = [
     "SprintState",
     "AgentDecision",
     "AgentAction",
+    "GithubSync",
 ]
