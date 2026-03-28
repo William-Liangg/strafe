@@ -37,8 +37,10 @@ Analyze the following Slack thread and generate a complete Jira ticket draft.
    - 3: Standard task with some complexity
    - 5: Significant work touching multiple files/services
    - 8: Large feature or complex investigation
-6. Assignee: Suggest the best engineer based on the expertise map provided
-
+6. Estimated Hours: Estimate the number of engineering hours this task would take for a competent engineer unfamiliar with the codebase. Be realistic but slightly conservative. Use fractional values if appropriate (e.g., 0.5, 2.5).
+7. Assignee: Suggest the best engineer based on the expertise map AND their available capacity. 
+   - CRITICAL RULE: If your `estimated_hours` exceeds an engineer's `Available working capacity this week` (if known), you MUST assign the next best expert who has enough time. Load balancing is critical!
+   
 ## Expertise Map (engineers and their domains):
 {expertise_map}
 
@@ -57,9 +59,10 @@ Return ONLY valid JSON with no preamble, no markdown fences, no explanation:
   "priority": "low|medium|high|critical",
   "labels": ["adhoc", "..."],
   "story_points": 1|2|3|5|8,
+  "estimated_hours": 2.5,
   "suggested_assignee_slack_id": "string or null if no good match",
   "suggested_assignee_name": "string or null",
-  "assignee_reason": "string explaining why this person, or null"
+  "assignee_reason": "string explaining why this person (must explicitly detail why their expertise matches AND confirm they have enough available capacity to handle the estimated hours), or null"
 }}"""
 
 RETRY_PROMPT = """Your previous response was not valid JSON. Please return ONLY a valid JSON object with no preamble, no markdown code fences, and no explanation text.
@@ -71,6 +74,7 @@ Required format:
   "priority": "low|medium|high|critical",
   "labels": ["adhoc"],
   "story_points": 3,
+  "estimated_hours": 2.5,
   "suggested_assignee_slack_id": "string or null",
   "suggested_assignee_name": "string or null",
   "assignee_reason": "string or null"
@@ -90,6 +94,9 @@ class TicketGenerator:
 
     async def get_expertise_map_text(self) -> str:
         """Fetch expertise map from database and format as text."""
+        from app.api.google_auth import get_tokens
+        from app.services.google_calendar import get_weekly_availability
+        
         async with async_session() as session:
             result = await session.execute(
                 select(ExpertiseMap).order_by(ExpertiseMap.score.desc())
@@ -101,9 +108,28 @@ class TicketGenerator:
 
             lines = []
             for expert in experts:
+                slack_id = expert.engineer_slack_id
+                tokens = get_tokens(slack_id)
+                
+                # Default assumption if Google Calendar isn't linked
+                capacity_str = "[Available working capacity this week: assumed 40.0 hours]"
+                
+                if tokens:
+                    try:
+                        avail = await get_weekly_availability(
+                            access_token=tokens["access_token"],
+                            refresh_token=tokens["refresh_token"]
+                        )
+                        if avail and avail.get("summary"):
+                            hours = avail["summary"].get("total_available_hours", 40.0)
+                            capacity_str = f"[Available working capacity this week: {hours} hours]"
+                    except Exception as e:
+                        logger.warning(f"Could not fetch availability for {expert.engineer_slack_id}: {e}")
+
                 lines.append(
                     f"- {expert.engineer_name} ({expert.engineer_slack_id}): "
-                    f"{expert.service_or_domain} - {expert.pr_count} PRs, score {expert.score:.1f}"
+                    f"{expert.service_or_domain} - {expert.pr_count} PRs, score {expert.score:.1f} "
+                    f"{capacity_str}"
                 )
             return "\n".join(lines)
 
@@ -196,6 +222,7 @@ class TicketGenerator:
                 "priority": "medium",
                 "labels": ["adhoc"],
                 "story_points": 3,
+                "estimated_hours": None,
                 "suggested_assignee_slack_id": None,
                 "suggested_assignee_name": None,
                 "assignee_reason": None,
@@ -241,6 +268,16 @@ class TicketGenerator:
             data["labels"] = ["adhoc"]
         elif "adhoc" not in data["labels"]:
             data["labels"].insert(0, "adhoc")
+
+        # Ensure estimated hours is a valid float within bounds
+        try:
+            val = float(data.get("estimated_hours", 0.0))
+            if val <= 0:
+                data["estimated_hours"] = None
+            else:
+                data["estimated_hours"] = round(max(0.25, min(80.0, val)), 1)
+        except (ValueError, TypeError):
+            data["estimated_hours"] = None
 
         # Ensure description exists
         if not data.get("description"):

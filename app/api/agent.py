@@ -23,6 +23,7 @@ class AgentDecisionResponse(BaseModel):
     jira_ticket_id: str | None
     channel_name: str
     story_points: int | None
+    estimated_hours: float | None
     auto_approved: bool
     created_at: datetime
 
@@ -102,6 +103,7 @@ async def get_agent_decisions(
                 jira_ticket_id=d.jira_ticket_id,
                 channel_name=d.channel_name,
                 story_points=d.story_points,
+                estimated_hours=d.estimated_hours,
                 auto_approved=d.auto_approved,
                 created_at=d.created_at,
             )

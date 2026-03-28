@@ -99,7 +99,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
               </p>
               {decision.story_points && (
                 <span className="text-xs text-gray-500">
-                  {decision.story_points} pts · {(decision.confidence * 100).toFixed(0)}% confidence
+                  {decision.story_points} pts {decision.estimated_hours ? `· ~${decision.estimated_hours} hours ` : ''}· {(decision.confidence * 100).toFixed(0)}% confidence
                 </span>
               )}
             </div>
@@ -112,7 +112,7 @@ function DecisionCard({ decision }: { decision: AgentDecision }) {
               </p>
               {decision.story_points && (
                 <span className="text-xs text-gray-500">
-                  {decision.story_points} pts · {(decision.confidence * 100).toFixed(0)}% confidence
+                  {decision.story_points} pts {decision.estimated_hours ? `· ~${decision.estimated_hours} hours ` : ''}· {(decision.confidence * 100).toFixed(0)}% confidence
                 </span>
               )}
             </div>
@@ -159,7 +159,9 @@ function PendingApprovalCard({
             </p>
           )}
           <div className="flex items-center gap-3 text-xs">
-            <span className="text-gray-500">{ticket.story_points} pts</span>
+            <span className="text-gray-500">
+              {ticket.story_points} pts {ticket.estimated_hours ? `· ~${ticket.estimated_hours} hours` : ''}
+            </span>
             <PriorityBadge priority={ticket.priority} />
             {ticket.suggested_assignee_name && (
               <span className="text-gray-500">
@@ -207,7 +209,7 @@ export default function AgentPage() {
 
   // Find reasoning for draft tickets from decisions
   const getReasoningForTicket = (ticketId: string) => {
-    const decision = decisions.find(d => d.ticket_id === ticketId)
+    const decision = decisions.find((d: any) => d.ticket_id === ticketId)
     return decision?.reasoning
   }
 
@@ -293,7 +295,7 @@ export default function AgentPage() {
               </div>
             ) : (
               <div className="space-y-0">
-                {decisions.map((decision) => (
+                {decisions.map((decision: AgentDecision) => (
                   <DecisionCard key={decision.id} decision={decision} />
                 ))}
               </div>

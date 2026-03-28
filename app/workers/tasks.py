@@ -106,6 +106,7 @@ def generate_ticket_task(
                 priority=ticket_data["priority"],
                 labels=ticket_data["labels"],
                 story_points=ticket_data["story_points"],
+                estimated_hours=ticket_data.get("estimated_hours"),
                 suggested_assignee_slack_id=ticket_data.get("suggested_assignee_slack_id"),
                 suggested_assignee_name=ticket_data.get("suggested_assignee_name"),
                 assignee_reason=ticket_data.get("assignee_reason"),
@@ -341,6 +342,7 @@ def analyze_and_generate_ticket_task(
                         priority=ticket_data["priority"],
                         labels=ticket_data["labels"],
                         story_points=story_points,
+                        estimated_hours=ticket_data.get("estimated_hours"),
                         suggested_assignee_slack_id=assignee_slack_id,
                         suggested_assignee_name=assignee_name,
                         assignee_reason=assignee_reason,
@@ -380,6 +382,7 @@ def analyze_and_generate_ticket_task(
                         jira_ticket_id=jira_key,
                         channel_name=channel_name,
                         story_points=story_points,
+                        estimated_hours=ticket_data.get("estimated_hours"),
                         auto_approved=True,
                     )
                     session.add(agent_decision)
@@ -432,6 +435,7 @@ def analyze_and_generate_ticket_task(
                 priority=ticket_data["priority"],
                 labels=ticket_data["labels"],
                 story_points=story_points,
+                estimated_hours=ticket_data.get("estimated_hours"),
                 suggested_assignee_slack_id=assignee_slack_id,
                 suggested_assignee_name=assignee_name,
                 assignee_reason=assignee_reason,
@@ -468,6 +472,7 @@ def analyze_and_generate_ticket_task(
                 assignee_reason=assignee_reason,
                 channel_name=channel_name,
                 story_points=story_points,
+                estimated_hours=ticket_data.get("estimated_hours"),
                 auto_approved=False,
             )
             session.add(agent_decision)

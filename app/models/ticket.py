@@ -55,6 +55,7 @@ class Ticket(Base):
     )
     labels: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=[])
     story_points: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    estimated_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Assignee suggestion
     suggested_assignee_slack_id: Mapped[str | None] = mapped_column(String, nullable=True)

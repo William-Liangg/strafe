@@ -196,9 +196,14 @@ export default function TicketsPage() {
                     <DecisionBadge ticket={ticket} />
                   </td>
                   <td className="px-4 py-4 text-center">
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-gray-600 block">
                       {ticket.story_points}
                     </span>
+                    {ticket.estimated_hours && (
+                      <span className="text-xs text-gray-400 block mt-0.5">
+                        ~{ticket.estimated_hours}h
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-4">
                     <span className="text-sm text-gray-600">

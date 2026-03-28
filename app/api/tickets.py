@@ -29,6 +29,7 @@ class TicketResponse(BaseModel):
     priority: str
     labels: list[str]
     story_points: int
+    estimated_hours: float | None
     suggested_assignee_slack_id: str | None
     suggested_assignee_name: str | None
     assignee_reason: str | None
@@ -57,6 +58,7 @@ class TicketUpdateRequest(BaseModel):
     description: str | None = None
     priority: str | None = Field(None, pattern="^(low|medium|high|critical)$")
     story_points: int | None = Field(None, ge=1, le=8)
+    estimated_hours: float | None = Field(None, ge=0.25, le=80.0)
     suggested_assignee_slack_id: str | None = None
     suggested_assignee_name: str | None = None
     labels: list[str] | None = None
@@ -91,6 +93,7 @@ def _ticket_to_response(ticket: Ticket) -> TicketResponse:
         priority=ticket.priority.value if hasattr(ticket.priority, 'value') else ticket.priority,
         labels=ticket.labels or [],
         story_points=ticket.story_points,
+        estimated_hours=ticket.estimated_hours,
         suggested_assignee_slack_id=ticket.suggested_assignee_slack_id,
         suggested_assignee_name=ticket.suggested_assignee_name,
         assignee_reason=ticket.assignee_reason,
