@@ -4,7 +4,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.database import init_db
-from app.api import slack_events, health, tasks, channels, tickets, jira_events, analytics, agent, expertise
+from app.api import (
+    slack_events,
+    health,
+    tasks,
+    channels,
+    tickets,
+    jira_events,
+    analytics,
+    agent,
+    expertise,
+    live_feed,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,3 +68,4 @@ app.include_router(jira_events.router, prefix="/webhooks", tags=["webhooks"])
 app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 app.include_router(agent.router, prefix="/agent", tags=["agent"])
 app.include_router(expertise.router, prefix="/expertise", tags=["expertise"])
+app.include_router(live_feed.router, prefix="/live-feed", tags=["live-feed"])

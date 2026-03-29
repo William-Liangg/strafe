@@ -6,6 +6,7 @@ from app.models.expertise_map import ExpertiseMap
 from app.models.sprint import Sprint, SprintState
 from app.models.agent_decision import AgentDecision, AgentAction
 from app.models.github_sync import GithubSync
+from app.models.slack_scan import SlackScan
 
 __all__ = [
     "ChannelConfig",
@@ -22,4 +23,5 @@ __all__ = [
     "AgentDecision",
     "AgentAction",
     "GithubSync",
+    "SlackScan",
 ]

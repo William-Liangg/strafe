@@ -21,14 +21,14 @@ For tasks, bugs, and feature requests, also extract:
   - low: nice-to-have, no deadline mentioned
 
 Return your analysis as JSON in this exact format:
-{
+{{
   "classification": "task|bug|feature_request|question|conversation",
   "confidence": 0.0-1.0,
   "title": "Concise title if task/bug/feature, null otherwise",
   "description": "Full context description if task/bug/feature, null otherwise",
   "priority": "high|medium|low or null",
   "reasoning": "Brief explanation of why you classified it this way"
-}
+}}
 
 Slack Thread:
 ---
