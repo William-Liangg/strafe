@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
+import { getServerEnv } from "@/lib/server-env"
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get("code")
@@ -18,11 +20,13 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const clientId = process.env.SLACK_CLIENT_ID
-  const clientSecret = process.env.SLACK_CLIENT_SECRET
-  const redirectUri = process.env.NEXT_PUBLIC_SLACK_REDIRECT_URI!
+  const clientId = getServerEnv("SLACK_CLIENT_ID")
+  const clientSecret = getServerEnv("SLACK_CLIENT_SECRET")
+  const redirectUri =
+    getServerEnv("NEXT_PUBLIC_SLACK_REDIRECT_URI") ||
+    `${getServerEnv("NEXTAUTH_URL") || request.nextUrl.origin}/api/auth/slack/callback`
 
-  if (!clientId || !clientSecret) {
+  if (!clientId || !clientSecret || !redirectUri) {
     return NextResponse.redirect(
       new URL("/login?error=not_configured", request.url)
     )

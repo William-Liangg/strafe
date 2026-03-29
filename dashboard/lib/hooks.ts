@@ -14,12 +14,16 @@ import {
 } from '@/lib/api'
 import type {
   TicketListResponse,
-  AgentDecisionsListResponse,
+  AgentDecisionsResponse,
   AgentStatusResponse,
-  AnalyticsSummary,
-  ExpertiseGraph,
-  GithubSyncStatus,
+  SummaryResponse,
+  EngineersResponse,
+  ChannelsResponse,
+  SprintsResponse,
+  ExpertiseGraphResponse,
+  ExpertiseSyncStatus,
   SlackScanStatus,
+  IntegrationStatusResponse,
 } from '@/lib/types'
 
 const DEFAULT_OPTS: SWRConfiguration = {
@@ -44,7 +48,7 @@ export function useTickets(status?: string, isMock?: boolean) {
 // ---------------------------------------------------------------------------
 
 export function useAgentDecisions(action?: string, limit = 50, isMock?: boolean) {
-  return useSWR<AgentDecisionsListResponse>(
+  return useSWR<AgentDecisionsResponse>(
     ['agent-decisions', action, limit, isMock],
     () => fetchAgentDecisions(action, limit, isMock),
     { ...DEFAULT_OPTS, refreshInterval: 10_000 },
@@ -64,7 +68,7 @@ export function useAgentStatus(isMock?: boolean) {
 // ---------------------------------------------------------------------------
 
 export function useSummary() {
-  return useSWR<AnalyticsSummary>(
+  return useSWR<SummaryResponse>(
     'analytics-summary',
     fetchAnalyticsSummary,
     { ...DEFAULT_OPTS, refreshInterval: 30_000 },
@@ -72,7 +76,7 @@ export function useSummary() {
 }
 
 export function useEngineers(sprintId?: string) {
-  return useSWR(
+  return useSWR<EngineersResponse>(
     ['analytics-engineers', sprintId],
     () => fetchEngineers(sprintId),
     DEFAULT_OPTS,
@@ -81,7 +85,7 @@ export function useEngineers(sprintId?: string) {
 
 export function useChannels(opts?: { since_days?: number }) {
   const sinceDays = opts?.since_days ?? 30
-  return useSWR(
+  return useSWR<ChannelsResponse>(
     ['analytics-channels', sinceDays],
     () => fetchChannels(sinceDays),
     DEFAULT_OPTS,
@@ -89,7 +93,7 @@ export function useChannels(opts?: { since_days?: number }) {
 }
 
 export function useSprints(opts?: { state?: string; limit?: number }) {
-  return useSWR(
+  return useSWR<SprintsResponse>(
     ['analytics-sprints', opts?.state, opts?.limit],
     () => fetchSprints(opts),
     DEFAULT_OPTS,
@@ -101,7 +105,7 @@ export function useSprints(opts?: { state?: string; limit?: number }) {
 // ---------------------------------------------------------------------------
 
 export function useExpertiseGraph() {
-  return useSWR<ExpertiseGraph>(
+  return useSWR<ExpertiseGraphResponse>(
     'expertise-graph',
     fetchExpertiseGraph,
     { ...DEFAULT_OPTS, revalidateOnFocus: true },
@@ -109,7 +113,7 @@ export function useExpertiseGraph() {
 }
 
 export function useExpertiseSyncStatus(pollWhileRunning = false) {
-  return useSWR<GithubSyncStatus>(
+  return useSWR<ExpertiseSyncStatus>(
     'expertise-sync-status',
     fetchExpertiseSyncStatus,
     {
@@ -124,7 +128,7 @@ export function useExpertiseSyncStatus(pollWhileRunning = false) {
 // ---------------------------------------------------------------------------
 
 export function useIntegrationStatus() {
-  return useSWR('integrations', fetchIntegrationStatus, DEFAULT_OPTS)
+  return useSWR<IntegrationStatusResponse>('integrations', fetchIntegrationStatus, DEFAULT_OPTS)
 }
 
 export function useSlackScanStatus(pollWhileRunning = false) {

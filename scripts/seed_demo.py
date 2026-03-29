@@ -1,6 +1,6 @@
 """
 Seed script to populate demo data for Strafe.
-Run with: python -m scripts.seed_demo
+Run with: python3 -m scripts.seed_demo
 
 Demo story flow:
   - Sprint 12 (closed): 14.3% adhoc — the baseline

@@ -1,16 +1,23 @@
 import type {
   TicketListResponse,
-  AgentDecisionsListResponse,
+  Ticket,
+  TicketApproveResponse,
+  AgentDecisionsResponse,
   AgentStatusResponse,
-  AnalyticsSummary,
-  ExpertiseGraph,
-  GithubSyncStatus,
-  SyncTriggerResponse,
+  SummaryResponse,
+  EngineersResponse,
+  ChannelsResponse,
+  SprintsResponse,
+  ExpertiseGraphResponse,
+  ExpertiseSyncStatus,
+  ExpertiseSyncTriggerResponse,
   SlackScanStatus,
   SlackScanTriggerResponse,
+  DisconnectResponse,
+  IntegrationStatusResponse,
 } from '@/lib/types'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
+const API_BASE = '/api/proxy'
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -33,15 +40,15 @@ export async function fetchTickets(status?: string, isMock?: boolean): Promise<T
   if (status) params.set('status', status)
   if (isMock !== undefined) params.set('is_mock', String(isMock))
   const qs = params.toString() ? `?${params}` : ''
-  return apiFetch<TicketListResponse>(`/tickets/${qs}`)
+  return apiFetch<TicketListResponse>(`/tickets${qs}`)
 }
 
-export async function approveTicket(id: string): Promise<void> {
-  await apiFetch(`/tickets/${id}/approve`, { method: 'POST' })
+export async function approveTicket(id: string): Promise<TicketApproveResponse> {
+  return apiFetch<TicketApproveResponse>(`/tickets/${id}/approve`, { method: 'POST' })
 }
 
-export async function rejectTicket(id: string, reason?: string): Promise<void> {
-  await apiFetch(`/tickets/${id}/reject`, {
+export async function rejectTicket(id: string, reason?: string): Promise<Ticket> {
+  return apiFetch<Ticket>(`/tickets/${id}/reject`, {
     method: 'POST',
     body: JSON.stringify({ reason: reason ?? '' }),
   })
@@ -55,11 +62,11 @@ export async function fetchAgentDecisions(
   action?: string,
   limit = 50,
   isMock?: boolean,
-): Promise<AgentDecisionsListResponse> {
+): Promise<AgentDecisionsResponse> {
   const params = new URLSearchParams({ limit: String(limit) })
   if (action) params.set('action', action)
   if (isMock !== undefined) params.set('is_mock', String(isMock))
-  return apiFetch<AgentDecisionsListResponse>(`/agent/decisions?${params}`)
+  return apiFetch<AgentDecisionsResponse>(`/agent/decisions?${params}`)
 }
 
 export async function fetchAgentStatus(isMock?: boolean): Promise<AgentStatusResponse> {
@@ -73,41 +80,41 @@ export async function fetchAgentStatus(isMock?: boolean): Promise<AgentStatusRes
 // Analytics
 // ---------------------------------------------------------------------------
 
-export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary> {
-  return apiFetch<AnalyticsSummary>('/analytics/summary')
+export async function fetchAnalyticsSummary(): Promise<SummaryResponse> {
+  return apiFetch<SummaryResponse>('/analytics/summary')
 }
 
-export async function fetchEngineers(sprintId?: string) {
+export async function fetchEngineers(sprintId?: string): Promise<EngineersResponse> {
   const qs = sprintId ? `?sprint_id=${sprintId}` : ''
-  return apiFetch(`/analytics/engineers${qs}`)
+  return apiFetch<EngineersResponse>(`/analytics/engineers${qs}`)
 }
 
-export async function fetchChannels(sinceDays = 30) {
-  return apiFetch(`/analytics/channels?since_days=${sinceDays}`)
+export async function fetchChannels(sinceDays = 30): Promise<ChannelsResponse> {
+  return apiFetch<ChannelsResponse>(`/analytics/channels?since_days=${sinceDays}`)
 }
 
-export async function fetchSprints(opts?: { state?: string; limit?: number }) {
+export async function fetchSprints(opts?: { state?: string; limit?: number }): Promise<SprintsResponse> {
   const params = new URLSearchParams()
   if (opts?.state) params.set('state', opts.state)
   if (opts?.limit) params.set('limit', String(opts.limit))
   const qs = params.toString() ? `?${params}` : ''
-  return apiFetch(`/analytics/sprints${qs}`)
+  return apiFetch<SprintsResponse>(`/analytics/sprints${qs}`)
 }
 
 // ---------------------------------------------------------------------------
 // Expertise graph
 // ---------------------------------------------------------------------------
 
-export async function fetchExpertiseGraph(): Promise<ExpertiseGraph> {
-  return apiFetch<ExpertiseGraph>('/expertise/graph')
+export async function fetchExpertiseGraph(): Promise<ExpertiseGraphResponse> {
+  return apiFetch<ExpertiseGraphResponse>('/expertise/graph')
 }
 
-export async function triggerExpertiseSync(): Promise<SyncTriggerResponse> {
-  return apiFetch<SyncTriggerResponse>('/expertise/sync', { method: 'POST' })
+export async function triggerExpertiseSync(): Promise<ExpertiseSyncTriggerResponse> {
+  return apiFetch<ExpertiseSyncTriggerResponse>('/expertise/sync', { method: 'POST' })
 }
 
-export async function fetchExpertiseSyncStatus(): Promise<GithubSyncStatus> {
-  return apiFetch<GithubSyncStatus>('/expertise/sync/status')
+export async function fetchExpertiseSyncStatus(): Promise<ExpertiseSyncStatus> {
+  return apiFetch<ExpertiseSyncStatus>('/expertise/sync/status')
 }
 
 // ---------------------------------------------------------------------------
@@ -145,18 +152,14 @@ export async function bootstrapLiveFeed(sinceHours = 24): Promise<{
   return apiFetch(`/live-feed/bootstrap?since_hours=${sinceHours}&force=true`, { method: 'POST' })
 }
 
-export async function fetchIntegrationStatus(): Promise<{
-  jira: { connected: boolean; workspace?: string; user?: string }
-  github: { connected: boolean; workspace?: string; user?: string; org?: string }
-  google_calendar: { connected: boolean; workspace?: string; user?: string }
-}> {
-  return apiFetch('/integrations/status')
+export async function fetchIntegrationStatus(): Promise<IntegrationStatusResponse> {
+  return apiFetch<IntegrationStatusResponse>('/integrations/status')
 }
 
 export function getIntegrationConnectUrl(service: string): string {
-  return `${API_BASE}/integrations/connect/${service}`
+  return `/api/proxy/integrations/connect/${service}`
 }
 
-export async function disconnectIntegration(service: string): Promise<void> {
-  return apiFetch(`/integrations/disconnect/${service}`, { method: 'POST' })
+export async function disconnectIntegration(service: string): Promise<DisconnectResponse> {
+  return apiFetch<DisconnectResponse>(`/integrations/disconnect/${service}`, { method: 'POST' })
 }

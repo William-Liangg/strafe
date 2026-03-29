@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
+import { getServerEnv } from "@/lib/server-env"
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get("code")
@@ -22,9 +24,11 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI
+  const clientId = getServerEnv("GOOGLE_CLIENT_ID")
+  const clientSecret = getServerEnv("GOOGLE_CLIENT_SECRET")
+  const redirectUri =
+    getServerEnv("GOOGLE_REDIRECT_URI") ||
+    `${getServerEnv("NEXTAUTH_URL") || baseUrl}/api/auth/google/callback`
 
   if (!clientId || !clientSecret || !redirectUri) {
     console.error("Google OAuth not configured")

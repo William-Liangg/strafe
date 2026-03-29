@@ -64,6 +64,7 @@ async def sync_bot_channels(db: AsyncSession = Depends(get_db)):
     slack_client = get_slack_client()
     try:
         workspace = slack_client.get_workspace_info()
+        bot_channels = slack_client.list_accessible_channels()
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not workspace:
@@ -73,7 +74,6 @@ async def sync_bot_channels(db: AsyncSession = Depends(get_db)):
     if not workspace_id:
         raise HTTPException(status_code=400, detail="Slack workspace ID not available")
 
-    bot_channels = slack_client.list_accessible_channels()
     registered = 0
     updated = 0
     synced_channels = []
@@ -161,6 +161,7 @@ async def bootstrap_live_feed(
     slack_client = get_slack_client()
     try:
         workspace = slack_client.get_workspace_info()
+        bot_channels = slack_client.list_accessible_channels()
     except RuntimeError as exc:
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -173,7 +174,6 @@ async def bootstrap_live_feed(
         await db.rollback()
         raise HTTPException(status_code=400, detail="Slack workspace ID not available")
 
-    bot_channels = slack_client.list_accessible_channels()
     for channel in bot_channels:
         channel_id = channel.get("id")
         channel_name = channel.get("name")

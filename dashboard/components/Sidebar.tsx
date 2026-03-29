@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Bot, Ticket, Users, GitBranch, Plug2 } from 'lucide-react'
@@ -16,6 +16,40 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const [integrationsOpen, setIntegrationsOpen] = useState(false)
+  const [demoMode, setDemoMode] = useState(false)
+  const [togglingDemo, setTogglingDemo] = useState(false)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDemoMode(document.cookie.split('; ').some((cookie) => cookie === 'demo_mode=true'))
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [])
+
+  const handleDemoToggle = async () => {
+    const nextValue = !demoMode
+    setDemoMode(nextValue)
+    setTogglingDemo(true)
+
+    try {
+      await fetch('/api/demo-toggle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ demo: nextValue }),
+      })
+
+      window.location.reload()
+    } catch (error) {
+      console.error('Failed to toggle demo mode:', error)
+      setDemoMode(!nextValue)
+      setTogglingDemo(false)
+    }
+  }
 
   return (
     <>
@@ -24,7 +58,14 @@ export function Sidebar() {
         style={{ fontFamily: 'var(--font-manrope)' }}
       >
         <div className="mb-8 px-3 pt-2">
-          <h1 className="text-2xl font-bold tracking-tight text-[#2d3526]">Strafe</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-[#2d3526]">Strafe</h1>
+            {demoMode && (
+              <span className="rounded-md bg-[#9f403d] px-1 py-0.5 text-[10px] font-black text-white">
+                DEMO
+              </span>
+            )}
+          </div>
           <p className="text-xs text-[#757d6b] mt-0.5">V1.0.4</p>
         </div>
 
@@ -56,6 +97,36 @@ export function Sidebar() {
           <Plug2 className="h-4 w-4" />
           <span>Integrations</span>
         </button>
+
+        <div className="mt-4 px-4">
+          <div className="mb-2 text-xs font-bold uppercase tracking-widest text-[#757d6b]">
+            Demo Mode
+          </div>
+          <button
+            onClick={handleDemoToggle}
+            disabled={togglingDemo}
+            className="flex w-full items-center justify-between rounded-2xl bg-white/80 px-3 py-3 text-left transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="text-sm font-medium text-[#2d3526]">
+              {demoMode ? 'Using seeded demo data' : 'Using live backend'}
+            </span>
+            <span
+              className={[
+                'relative inline-flex h-6 w-11 items-center rounded-full border transition-colors',
+                demoMode
+                  ? 'border-[#9D70FF] bg-[#9D70FF]'
+                  : 'border-[#b8c4a8] bg-transparent',
+              ].join(' ')}
+            >
+              <span
+                className={[
+                  'inline-block h-4 w-4 rounded-full bg-white transition-transform',
+                  demoMode ? 'translate-x-6' : 'translate-x-1',
+                ].join(' ')}
+              />
+            </span>
+          </button>
+        </div>
 
         <div className="mt-auto pt-4 flex items-center gap-3 px-3">
           <div className="w-9 h-9 shrink-0 rounded-xl bg-[#d8e2c8] flex items-center justify-center font-semibold text-[#2d3526] text-sm">

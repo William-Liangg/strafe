@@ -103,8 +103,12 @@ class SlackClientService:
                 if not cursor:
                     break
         except SlackApiError as e:
-            logger.error(f"Error listing channels: {e}")
-            return []
+            error_code = e.response.get("error", "unknown") if e.response else "unknown"
+            logger.error(f"Slack API error listing channels: {error_code} — {e}")
+            raise RuntimeError(f"Slack API error listing channels: {error_code}") from e
+        except Exception as e:
+            logger.error(f"Network error listing channels: {e}")
+            raise RuntimeError(f"Network error reaching Slack: {e}") from e
 
         return channels
 
@@ -129,7 +133,12 @@ class SlackClientService:
         except SlackApiError as e:
             error_code = e.response.get("error", "unknown") if e.response else "unknown"
             logger.error(f"[SLACK] conversations_history failed for channel {channel_id}: {error_code} — {e}")
-            return []
+            raise RuntimeError(
+                f"Slack API error reading channel {channel_id} history: {error_code}"
+            ) from e
+        except Exception as e:
+            logger.error(f"[SLACK] network error reading history for channel {channel_id}: {e}")
+            raise RuntimeError(f"Network error reaching Slack: {e}") from e
 
         return messages
 

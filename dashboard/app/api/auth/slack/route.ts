@@ -1,16 +1,20 @@
 import { NextResponse } from "next/server"
 
-export async function GET() {
-  const clientId = process.env.SLACK_CLIENT_ID
+import { getServerEnv } from "@/lib/server-env"
 
-  if (!clientId) {
+export async function GET() {
+  const clientId = getServerEnv("SLACK_CLIENT_ID")
+  const baseUrl = getServerEnv("NEXTAUTH_URL") || "http://localhost:3000"
+  const redirectUri =
+    getServerEnv("NEXT_PUBLIC_SLACK_REDIRECT_URI") ||
+    `${baseUrl}/api/auth/slack/callback`
+
+  if (!clientId || !redirectUri) {
     return NextResponse.json(
       { error: "Slack OAuth not configured" },
       { status: 500 }
     )
   }
-
-  const redirectUri = process.env.NEXT_PUBLIC_SLACK_REDIRECT_URI!
 
   // Slack OAuth scopes for "Sign in with Slack"
   const scopes = ["openid", "profile", "email"]
