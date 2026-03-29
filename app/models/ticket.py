@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import String, Integer, Float, DateTime, func, ForeignKey, Text, Enum
+from sqlalchemy import Boolean, String, Integer, Float, DateTime, func, ForeignKey, Text, Enum, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 import enum
@@ -80,6 +80,9 @@ class Ticket(Base):
         Enum(TicketStatus, values_callable=lambda x: [e.value for e in x]),
         nullable=False, default=TicketStatus.DRAFT
     )
+
+    # Data source flag — True for seeded demo data, False for real Slack-scanned data
+    is_mock: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text('false'))
 
     # Rejection tracking
     rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)

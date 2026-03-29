@@ -41,16 +41,23 @@ class LiveFeedBootstrapResponse(BaseModel):
 
 
 async def _clear_live_feed_data(db: AsyncSession) -> dict[str, int]:
+    """Delete only live (is_mock=False) data so demo seed data is preserved."""
     counts: dict[str, int] = {}
 
     for model, key in (
         (AgentDecision, "agent_decisions"),
         (Ticket, "tickets"),
+        (Sprint, "sprints"),
+    ):
+        result = await db.execute(delete(model).where(model.is_mock == False))  # noqa: E712
+        counts[key] = result.rowcount or 0
+
+    # These models have no is_mock flag — always safe to clear (they're live-only)
+    for model, key in (
         (DetectedTask, "detected_tasks"),
         (SlackThread, "slack_threads"),
         (SlackScan, "slack_scans"),
         (ChannelConfig, "channel_configs"),
-        (Sprint, "sprints"),
     ):
         result = await db.execute(delete(model))
         counts[key] = result.rowcount or 0

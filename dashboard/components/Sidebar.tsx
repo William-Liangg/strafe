@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Bot, Ticket, Users, GitBranch, Plug2 } from 'lucide-react'
+import { bootstrapLiveFeed } from '@/lib/api'
 import { IntegrationsModal } from './IntegrationsModal'
 
 const navItems = [
@@ -37,11 +38,15 @@ export function Sidebar() {
     try {
       await fetch('/api/demo-toggle', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ demo: nextValue }),
       })
+
+      // Switching to live mode: kick off a Slack bootstrap in the background
+      // so real data replaces demo data immediately after reload
+      if (!nextValue) {
+        bootstrapLiveFeed(24).catch(() => {})
+      }
 
       window.location.reload()
     } catch (error) {
@@ -100,7 +105,7 @@ export function Sidebar() {
 
         <div className="mt-4 px-4">
           <div className="mb-2 text-xs font-bold uppercase tracking-widest text-[#757d6b]">
-            Demo Mode
+            Data Source
           </div>
           <button
             onClick={handleDemoToggle}
@@ -108,7 +113,7 @@ export function Sidebar() {
             className="flex w-full items-center justify-between rounded-2xl bg-white/80 px-3 py-3 text-left transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span className="text-sm font-medium text-[#2d3526]">
-              {demoMode ? 'Using seeded demo data' : 'Using live backend'}
+              {demoMode ? 'Demo data' : 'Live Slack'}
             </span>
             <span
               className={[

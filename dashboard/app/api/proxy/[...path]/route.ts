@@ -10,6 +10,8 @@ const BACKEND_BASE_URL =
   getServerEnv('NEXT_PUBLIC_API_BASE_URL') ||
   getServerEnv('NEXT_PUBLIC_API_URL') ||
   'http://localhost:8000'
+const BACKEND_ORIGIN = new URL(BACKEND_BASE_URL).origin
+const MAX_BACKEND_REDIRECTS = 5
 
 type RouteContext = {
   params: Promise<{
@@ -240,18 +242,54 @@ async function forwardToBackend(
       ? undefined
       : await request.arrayBuffer()
 
-  const response = await fetch(backendUrl, {
-    method: request.method,
-    headers,
-    body,
-    redirect: 'manual',
-  })
+  const response = await fetchBackendWithInternalRedirects(
+    backendUrl,
+    {
+      method: request.method,
+      headers,
+      body,
+    },
+  )
 
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: response.headers,
   })
+}
+
+async function fetchBackendWithInternalRedirects(
+  url: string,
+  init: RequestInit,
+  redirectCount = 0,
+): Promise<Response> {
+  const response = await fetch(url, {
+    ...init,
+    redirect: 'manual',
+  })
+
+  const location = response.headers.get('location')
+  if (
+    location &&
+    response.status >= 300 &&
+    response.status < 400 &&
+    redirectCount < MAX_BACKEND_REDIRECTS
+  ) {
+    const redirectedUrl = new URL(location, url)
+
+    // Follow only backend-internal redirects so API collection routes like
+    // `/tickets -> /tickets/` stay same-origin and do not leak CORS errors
+    // into the browser. External redirects are returned as-is for auth flows.
+    if (redirectedUrl.origin === BACKEND_ORIGIN) {
+      return fetchBackendWithInternalRedirects(
+        redirectedUrl.toString(),
+        init,
+        redirectCount + 1,
+      )
+    }
+  }
+
+  return response
 }
 
 async function handleRequest(

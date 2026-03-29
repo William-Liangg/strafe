@@ -1,7 +1,7 @@
 import enum
 from uuid import UUID
 from datetime import datetime
-from sqlalchemy import String, Float, Boolean, Integer, DateTime, Text, ForeignKey, Enum, func
+from sqlalchemy import String, Float, Boolean, Integer, DateTime, Text, ForeignKey, Enum, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
@@ -52,6 +52,7 @@ class AgentDecision(Base):
     channel_name: Mapped[str] = mapped_column(String, nullable=False)
     story_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
     auto_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_mock: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text('false'))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

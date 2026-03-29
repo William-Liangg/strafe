@@ -86,6 +86,24 @@ export interface TicketApproveResponse {
   message: string
 }
 
+export interface DetectedTaskThread {
+  thread_ts: string
+  channel_id: string
+  reply_count: number
+}
+
+export interface DetectedTask {
+  id: string
+  classification: string
+  confidence: number
+  title: string | null
+  description: string | null
+  priority: TicketPriority | string | null
+  status: string
+  created_at: string | null
+  thread: DetectedTaskThread | null
+}
+
 // ---------------------------------------------------------------------------
 // Agent decision types
 // ---------------------------------------------------------------------------
@@ -309,4 +327,12 @@ export interface SlackScanTriggerResponse {
   task_id: string
   status: string
   message: string
+}
+
+export interface LiveChannel {
+  channel_id: string
+  channel_name: string
+  monitoring_active: boolean
+  min_replies: number
+  is_real: boolean
 }

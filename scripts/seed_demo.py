@@ -200,7 +200,7 @@ async def seed_expertise_map():
 
     async with async_session() as session:
         for expert_data in experts:
-            expert = ExpertiseMap(**expert_data)
+            expert = ExpertiseMap(**expert_data, is_mock=True)
             session.add(expert)
         await session.commit()
         print(f"  Seeded {len(experts)} expertise map entries")
@@ -265,7 +265,7 @@ async def seed_sprints():
     async with async_session() as session:
         sprints = []
         for sprint_data in sprints_data:
-            sprint = Sprint(**sprint_data)
+            sprint = Sprint(**sprint_data, is_mock=True)
             session.add(sprint)
             sprints.append(sprint)
         await session.commit()
@@ -573,6 +573,7 @@ async def seed_historical_tasks_and_tickets():
             ticket = Ticket(
                 detected_task_id=task.id,
                 sprint_id=sprint_14.id if sprint_14 else None,
+                is_mock=True,
                 **ticket_data,
             )
             session.add(ticket)
@@ -582,16 +583,16 @@ async def seed_historical_tasks_and_tickets():
 
         # Seed Sprint 12 + 13 historical tickets (no threads/tasks needed)
         for ticket_data in sprint_12_tickets:
-            ticket = Ticket(sprint_id=sprint_12.id if sprint_12 else None, **ticket_data)
+            ticket = Ticket(sprint_id=sprint_12.id if sprint_12 else None, is_mock=True, **ticket_data)
             session.add(ticket)
 
         for ticket_data in sprint_13_tickets:
-            ticket = Ticket(sprint_id=sprint_13.id if sprint_13 else None, **ticket_data)
+            ticket = Ticket(sprint_id=sprint_13.id if sprint_13 else None, is_mock=True, **ticket_data)
             session.add(ticket)
 
         # Seed Sprint 14 planned tickets
         for ticket_data in sprint_14_planned_tickets:
-            ticket = Ticket(sprint_id=sprint_14.id if sprint_14 else None, **ticket_data)
+            ticket = Ticket(sprint_id=sprint_14.id if sprint_14 else None, is_mock=True, **ticket_data)
             session.add(ticket)
 
         await session.commit()
@@ -758,7 +759,7 @@ async def seed_agent_decisions(ticket_objs, task_objs):
 
         decisions = []
         for data in decisions_data:
-            decision = AgentDecision(**data)
+            decision = AgentDecision(**data, is_mock=True)
             session.add(decision)
             decisions.append(decision)
 
