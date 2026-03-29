@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:3000/api/auth/google/callback"
 
+    # Google Calendar
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/api/auth/google/callback"
+
     # App
     debug: bool = False
 

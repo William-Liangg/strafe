@@ -51,6 +51,7 @@ class AgentDecision(Base):
     jira_ticket_id: Mapped[str | None] = mapped_column(String, nullable=True)
     channel_name: Mapped[str] = mapped_column(String, nullable=False)
     story_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    estimated_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
     auto_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

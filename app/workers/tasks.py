@@ -100,13 +100,36 @@ def generate_ticket_task(
 
         # Save ticket to database
         async with async_session() as session:
+            # Semantic relationship check
+            recent_tickets_result = await session.execute(
+                select(Ticket)
+                .where(Ticket.status.in_(["draft", "created"]))
+                .order_by(Ticket.created_at.desc())
+                .limit(100)
+            )
+            recent_tickets = recent_tickets_result.scalars().all()
+            
+            related_id = None
+            relation_type = None
+            if recent_tickets:
+                try:
+                    relation_data = await generator.find_related_ticket(ticket_data, recent_tickets)
+                    if relation_data and relation_data.get("related_ticket_id"):
+                        related_id = UUID(relation_data["related_ticket_id"])
+                        relation_type = relation_data.get("relation_type")
+                except Exception as e:
+                    logger.error(f"Error checking for related tickets: {e}")
+
             ticket = Ticket(
                 detected_task_id=UUID(detected_task_id) if detected_task_id else None,
+                related_ticket_id=related_id,
+                relation_type=relation_type,
                 title=ticket_data["title"],
                 description=ticket_data["description"],
                 priority=ticket_data["priority"],
                 labels=ticket_data["labels"],
                 story_points=ticket_data["story_points"],
+                estimated_hours=ticket_data.get("estimated_hours"),
                 suggested_assignee_slack_id=ticket_data.get("suggested_assignee_slack_id"),
                 suggested_assignee_name=ticket_data.get("suggested_assignee_name"),
                 assignee_reason=ticket_data.get("assignee_reason"),
@@ -295,6 +318,26 @@ def analyze_and_generate_ticket_task(
                 thread_url=thread_url,
             )
 
+            # Semantic relationship check
+            recent_tickets_result = await session.execute(
+                select(Ticket)
+                .where(Ticket.status.in_(["draft", "created"]))
+                .order_by(Ticket.created_at.desc())
+                .limit(100)
+            )
+            recent_tickets = recent_tickets_result.scalars().all()
+            
+            related_id = None
+            relation_type = None
+            if recent_tickets:
+                try:
+                    relation_data = await generator.find_related_ticket(ticket_data, recent_tickets)
+                    if relation_data and relation_data.get("related_ticket_id"):
+                        related_id = UUID(relation_data["related_ticket_id"])
+                        relation_type = relation_data.get("relation_type")
+                except Exception as e:
+                    logger.error(f"Error checking for related tickets: {e}")
+
             story_points = ticket_data["story_points"]
             assignee_name = ticket_data.get("suggested_assignee_name")
             assignee_slack_id = ticket_data.get("suggested_assignee_slack_id")
@@ -335,6 +378,8 @@ def analyze_and_generate_ticket_task(
                     # Create ticket in DB with status=created
                     ticket = Ticket(
                         detected_task_id=detected_task.id,
+                        related_ticket_id=related_id,
+                        relation_type=relation_type,
                         jira_ticket_id=jira_key,
                         jira_ticket_url=jira_url,
                         title=ticket_data["title"],
@@ -342,6 +387,7 @@ def analyze_and_generate_ticket_task(
                         priority=ticket_data["priority"],
                         labels=ticket_data["labels"],
                         story_points=story_points,
+                        estimated_hours=ticket_data.get("estimated_hours"),
                         suggested_assignee_slack_id=assignee_slack_id,
                         suggested_assignee_name=assignee_name,
                         assignee_reason=assignee_reason,
@@ -381,6 +427,7 @@ def analyze_and_generate_ticket_task(
                         jira_ticket_id=jira_key,
                         channel_name=channel_name,
                         story_points=story_points,
+                        estimated_hours=ticket_data.get("estimated_hours"),
                         auto_approved=True,
                     )
                     session.add(agent_decision)
@@ -428,11 +475,14 @@ def analyze_and_generate_ticket_task(
             # HUMAN REVIEW MODE: Create draft ticket
             ticket = Ticket(
                 detected_task_id=detected_task.id,
+                related_ticket_id=related_id,
+                relation_type=relation_type,
                 title=ticket_data["title"],
                 description=ticket_data["description"],
                 priority=ticket_data["priority"],
                 labels=ticket_data["labels"],
                 story_points=story_points,
+                estimated_hours=ticket_data.get("estimated_hours"),
                 suggested_assignee_slack_id=assignee_slack_id,
                 suggested_assignee_name=assignee_name,
                 assignee_reason=assignee_reason,
@@ -469,6 +519,7 @@ def analyze_and_generate_ticket_task(
                 assignee_reason=assignee_reason,
                 channel_name=channel_name,
                 story_points=story_points,
+                estimated_hours=ticket_data.get("estimated_hours"),
                 auto_approved=False,
             )
             session.add(agent_decision)

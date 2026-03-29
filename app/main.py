@@ -1,10 +1,14 @@
+import os
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.database import init_db
-from app.api import slack_events, health, tasks, channels, tickets, jira_events, analytics, agent, integrations, expertise
+from app.api import slack_events, health, tasks, channels, tickets, jira_events, analytics, agent, integrations, expertise, google_auth
+
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +16,10 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    await init_db()
+    try:
+        await init_db()
+    except Exception as e:
+        logger.warning(f"Database not available (OK for testing OAuth): {e}")
 
     # Register Jira webhooks (if configured)
     # Note: In production, pass the actual public URL
@@ -58,3 +65,4 @@ app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 app.include_router(agent.router, prefix="/agent", tags=["agent"])
 app.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
 app.include_router(expertise.router, prefix="/expertise", tags=["expertise"])
+app.include_router(google_auth.router, prefix="/api", tags=["google-calendar"])

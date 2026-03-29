@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Bot, Ticket, Users, GitBranch, Plug2 } from 'lucide-react'
 import { IntegrationsModal } from './IntegrationsModal'
+import { CURRENT_USER } from '@/lib/user'
 
 const navItems = [
   { href: '/', label: 'Live Feed', Icon: Bot },

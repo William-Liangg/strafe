@@ -17,10 +17,10 @@ Analyze the following Slack thread and generate a complete Jira ticket draft.
 
 ## Rules:
 1. Title: Max 80 characters, imperative verb form (e.g., "Add margin fields to /v2/quotes endpoint")
-2. Description: Full markdown with context including:
-   - What was requested
-   - Who requested it and why it matters
-   - Any deadlines or urgency mentioned
+2. Description: Full markdown containing bullet points detailing exactly what the engineer needs to do for the ticket. Do NOT include a summary or background context paragraph.
+   - List actionable engineering steps
+   - Include any explicitly stated acceptance criteria
+   - Include any deadlines or urgency mentioned
    - Link back to the Slack thread
 3. Priority: Based on urgency signals
    - critical: "blocking", "production down", "P0"
@@ -37,8 +37,10 @@ Analyze the following Slack thread and generate a complete Jira ticket draft.
    - 3: Standard task with some complexity
    - 5: Significant work touching multiple files/services
    - 8: Large feature or complex investigation
-6. Assignee: Suggest the best engineer based on the expertise map provided
-
+6. Estimated Hours: Estimate the number of engineering hours this task would take for a competent engineer unfamiliar with the codebase. Be realistic but slightly conservative. Use fractional values if appropriate (e.g., 0.5, 2.5).
+7. Assignee: Suggest the best engineer based on the expertise map AND their available capacity. 
+   - CRITICAL RULE: If your `estimated_hours` exceeds an engineer's `Available working capacity this week` (if known), you MUST assign the next best expert who has enough time. Load balancing is critical!
+   
 ## Expertise Map (engineers and their domains):
 {expertise_map}
 
@@ -57,9 +59,10 @@ Return ONLY valid JSON with no preamble, no markdown fences, no explanation:
   "priority": "low|medium|high|critical",
   "labels": ["adhoc", "..."],
   "story_points": 1|2|3|5|8,
+  "estimated_hours": 2.5,
   "suggested_assignee_slack_id": "string or null if no good match",
   "suggested_assignee_name": "string or null",
-  "assignee_reason": "string explaining why this person, or null"
+  "assignee_reason": "string explaining why this person (must explicitly detail why their expertise matches AND confirm they have enough available capacity to handle the estimated hours), or null"
 }}"""
 
 RETRY_PROMPT = """Your previous response was not valid JSON. Please return ONLY a valid JSON object with no preamble, no markdown code fences, and no explanation text.
@@ -71,6 +74,7 @@ Required format:
   "priority": "low|medium|high|critical",
   "labels": ["adhoc"],
   "story_points": 3,
+  "estimated_hours": 2.5,
   "suggested_assignee_slack_id": "string or null",
   "suggested_assignee_name": "string or null",
   "assignee_reason": "string or null"
@@ -82,6 +86,28 @@ Previous invalid response:
 Original request was to generate a ticket for this Slack thread:
 {thread_content}"""
 
+TICKET_RELATIONSHIP_PROMPT = """You are an expert technical project manager. You need to determine if a newly generated ticket is strongly related to any existing active tickets.
+
+## New Ticket:
+Title: {new_title}
+Description:
+{new_description}
+
+## Existing Active Tickets:
+{existing_tickets_json}
+
+---
+Analyze the new ticket against the existing tickets. Is there a strong semantic relationship? 
+A strong relationship means:
+- The new ticket is a duplicate or a very similar sub-task ("similar_to")
+- The new ticket depends on an existing ticket to be completed first, or addresses the exact same underlying codebase component in a way that requires coordination ("depends_on")
+
+Return ONLY valid JSON with no preamble, no markdown fences, and no explanation:
+{{
+  "related_ticket_id": "UUID string of the related ticket, or null if no strong relationship exists",
+  "relation_type": "similar_to or depends_on, or null if no strong relationship exists"
+}}
+"""
 
 class TicketGenerator:
     def __init__(self):
@@ -90,6 +116,9 @@ class TicketGenerator:
 
     async def get_expertise_map_text(self) -> str:
         """Fetch expertise map from database and format as text."""
+        from app.api.google_auth import get_tokens
+        from app.services.google_calendar import get_weekly_availability
+        
         async with async_session() as session:
             result = await session.execute(
                 select(ExpertiseMap).order_by(ExpertiseMap.score.desc())
@@ -101,9 +130,28 @@ class TicketGenerator:
 
             lines = []
             for expert in experts:
+                slack_id = expert.engineer_slack_id
+                tokens = get_tokens(slack_id)
+                
+                # Default assumption if Google Calendar isn't linked
+                capacity_str = "[Available working capacity this week: assumed 40.0 hours]"
+                
+                if tokens:
+                    try:
+                        avail = await get_weekly_availability(
+                            access_token=tokens["access_token"],
+                            refresh_token=tokens["refresh_token"]
+                        )
+                        if avail and avail.get("summary"):
+                            hours = avail["summary"].get("total_available_hours", 40.0)
+                            capacity_str = f"[Available working capacity this week: {hours} hours]"
+                    except Exception as e:
+                        logger.warning(f"Could not fetch availability for {expert.engineer_slack_id}: {e}")
+
                 lines.append(
                     f"- {expert.engineer_name} ({expert.engineer_slack_id}): "
-                    f"{expert.service_or_domain} - {expert.pr_count} PRs, score {expert.score:.1f}"
+                    f"{expert.service_or_domain} - {expert.pr_count} PRs, score {expert.score:.1f} "
+                    f"{capacity_str}"
                 )
             return "\n".join(lines)
 
@@ -196,6 +244,7 @@ class TicketGenerator:
                 "priority": "medium",
                 "labels": ["adhoc"],
                 "story_points": 3,
+                "estimated_hours": None,
                 "suggested_assignee_slack_id": None,
                 "suggested_assignee_name": None,
                 "assignee_reason": None,
@@ -242,11 +291,59 @@ class TicketGenerator:
         elif "adhoc" not in data["labels"]:
             data["labels"].insert(0, "adhoc")
 
+        # Ensure estimated hours is a valid float within bounds
+        try:
+            val = float(data.get("estimated_hours", 0.0))
+            if val <= 0:
+                data["estimated_hours"] = None
+            else:
+                data["estimated_hours"] = round(max(0.25, min(80.0, val)), 1)
+        except (ValueError, TypeError):
+            data["estimated_hours"] = None
+
         # Ensure description exists
         if not data.get("description"):
             data["description"] = "No description generated."
 
         return data
+
+    async def find_related_ticket(self, new_ticket_data: dict, existing_tickets: list) -> dict | None:
+        """Analyze a new ticket against existing tickets to find semantic relationships."""
+        if not existing_tickets:
+            return None
+
+        # Build JSON array of existing tickets (minimized for tokens)
+        import json
+        tickets_info = []
+        for t in existing_tickets:
+            tickets_info.append({
+                "id": str(t.id),
+                "title": t.title,
+                "description": t.description[:200] + "..." if t.description and len(t.description) > 200 else t.description,
+            })
+
+        prompt = TICKET_RELATIONSHIP_PROMPT.format(
+            new_title=new_ticket_data.get("title", ""),
+            new_description=new_ticket_data.get("description", ""),
+            existing_tickets_json=json.dumps(tickets_info, indent=2)
+        )
+
+        response_text, _ = self._call_claude(prompt)
+        result = self._parse_json_response(response_text)
+
+        if not result:
+            return None
+
+        related_id = result.get("related_ticket_id")
+        relation_type = result.get("relation_type")
+
+        if related_id and relation_type in ["similar_to", "depends_on"]:
+            return {
+                "related_ticket_id": related_id,
+                "relation_type": relation_type
+            }
+
+        return None
 
 
 # Singleton instance

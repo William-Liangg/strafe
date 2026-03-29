@@ -36,6 +36,61 @@ function initials(name: string) {
     .slice(0, 2)
 }
 
+
+// ─── relationship grouping ───────────────────────────────────────────────────
+
+type DisplayItem = Ticket | { isLabelRow: true; label: string; parentId: string }
+
+function groupTicketsForDisplay(tickets: Ticket[]): DisplayItem[] {
+  const result: DisplayItem[] = []
+  
+  // Find all children mapping
+  const childrenMap = new Map<string, Ticket[]>()
+  for (const t of tickets) {
+    if (t.related_ticket_id) {
+      const arr = childrenMap.get(t.related_ticket_id) || []
+      arr.push(t)
+      childrenMap.set(t.related_ticket_id, arr)
+    }
+  }
+
+  // Set of IDs already processed
+  const processed = new Set<string>()
+
+  for (const t of tickets) {
+    if (processed.has(t.id)) continue
+    
+    // Is it a child? If so, skip rendering it here UNLESS parent is not in this filtered list
+    if (t.related_ticket_id) {
+      const parentInList = tickets.find(p => p.id === t.related_ticket_id)
+      if (parentInList) {
+        continue // Parent will process it when its turn comes
+      }
+    }
+
+    const children = childrenMap.get(t.id) || []
+    
+    if (children.length > 0) {
+      result.push({ 
+        isLabelRow: true, 
+        label: `⚯ RELATED TICKETS: ${t.jira_ticket_id || 'Ticket'} + ${children.length} dependent`,
+        parentId: t.id
+      })
+      result.push(t)
+      processed.add(t.id)
+      for (const child of children) {
+        result.push(child)
+        processed.add(child.id)
+      }
+    } else {
+      result.push(t)
+      processed.add(t.id)
+    }
+  }
+
+  return result
+}
+
 // ─── filter tabs ─────────────────────────────────────────────────────────────
 
 type StatusFilter = 'all' | 'draft' | 'created' | 'rejected'
@@ -174,7 +229,20 @@ export default function TicketsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((ticket, idx) => {
+                {groupTicketsForDisplay(filtered).map((item, idx) => {
+                  if ('isLabelRow' in item) {
+                    return (
+                      <tr key={`label-${item.parentId}`} className="bg-[#f2f5e8] border-t border-[#b8c4a8]/30">
+                        <td colSpan={6} className="px-6 py-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#2d3526]" style={{ fontFamily: 'var(--font-manrope)' }}>
+                            {item.label}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  }
+
+                  const ticket = item as Ticket
                   const isSelected = selected?.id === ticket.id
                   const pip = priorityPip(ticket.priority)
                   const isDraft = ticket.status === 'draft'
@@ -187,17 +255,31 @@ export default function TicketsPage() {
                         'cursor-pointer transition-colors',
                         isSelected
                           ? 'bg-[#f2f5e8]'
+                          : ticket.related_ticket_id
+                          ? 'bg-purple-50 hover:bg-purple-100/50'
                           : idx % 2 === 0
                           ? 'bg-white hover:bg-[#f9faf0]'
                           : 'bg-[#f9faf0]/60 hover:bg-[#f2f5e8]/60',
                       ].join(' ')}
                     >
-                      <td className="px-6 py-4">
+                      <td className={`px-6 py-4 ${ticket.related_ticket_id ? 'pl-8' : ''}`}>
                         <div className="flex items-center gap-3">
+                          {ticket.related_ticket_id && (
+                            <span className="text-purple-400 text-xl font-light opacity-50 shrink-0 select-none mt-1">↳</span>
+                          )}
                           <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${pip} ${isDraft ? 'animate-pulse' : ''}`} />
-                          <span className="font-semibold text-sm text-[#2d3526] line-clamp-1" style={{ fontFamily: 'var(--font-manrope)' }}>
-                            {ticket.title}
-                          </span>
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-sm text-[#2d3526] line-clamp-1" style={{ fontFamily: 'var(--font-manrope)' }}>
+                              {ticket.title}
+                            </span>
+                            {(ticket.story_points || ticket.estimated_hours) && (
+                              <span className="text-[#757d6b] text-xs block mt-0.5">
+                                {ticket.story_points ? `${ticket.story_points} pts` : ''}
+                                {ticket.story_points && ticket.estimated_hours ? ' · ' : ''}
+                                {ticket.estimated_hours ? `~${ticket.estimated_hours}h est` : ''}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-4">
