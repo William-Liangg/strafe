@@ -16,11 +16,15 @@ class Settings(BaseSettings):
     slack_client_secret: str = ""
     nextauth_url: str = "http://localhost:3000"
     nextauth_secret: str = ""
+    next_public_slack_redirect_uri: str = ""
 
     # Anthropic
     anthropic_api_key: str
 
+    # GitHub
     github_token: str = ""
+    github_client_id: str = ""
+    github_client_secret: str = ""
 
     # Jira
     jira_email: str = ""
@@ -28,6 +32,13 @@ class Settings(BaseSettings):
     jira_base_url: str = "https://yourworkspace.atlassian.net"
     jira_project_key: str = "ENG"
     jira_board_id: int = 1
+    jira_client_id: str = ""
+
+    # Google Calendar
+    google_calendar_token: str = ""
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:3000/api/auth/google/callback"
 
     # App
     debug: bool = False
