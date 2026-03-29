@@ -597,75 +597,65 @@ def github_sync_task(self):
     """
     from app.config import get_settings
     from app.services.github_analyzer import analyze_repo
-    from app.database import async_session
     from app.models import GithubSync
-    from sqlalchemy import select
+    from sqlalchemy import select, create_engine
+    from sqlalchemy.orm import Session
 
     settings = get_settings()
+    task_id = self.request.id
 
-    async def _run():
-        # Find the running GithubSync record for this task
-        async with async_session() as session:
-            result = await session.execute(
-                select(GithubSync)
-                .where(GithubSync.celery_task_id == self.request.id)
-                .limit(1)
+    # Use sync engine for Celery tasks to avoid async connection conflicts
+    sync_db_url = settings.database_url.replace("+asyncpg", "").replace("postgresql+asyncpg", "postgresql")
+    engine = create_engine(sync_db_url)
+
+    def update_sync_record(status: str, error_msg: str | None = None, stats: dict | None = None):
+        """Helper to update the GithubSync record synchronously."""
+        with Session(engine) as session:
+            result = session.execute(
+                select(GithubSync).where(GithubSync.celery_task_id == task_id).limit(1)
             )
-            sync_record = result.scalar_one_or_none()
+            rec = result.scalar_one_or_none()
+            if rec:
+                rec.status = status
+                rec.synced_at = datetime.now(timezone.utc)
+                if error_msg:
+                    rec.error_message = error_msg
+                if stats:
+                    rec.contributors_analyzed = stats.get("contributors_analyzed", 0)
+                    rec.domains_extracted = stats.get("domains_extracted", 0)
+                session.commit()
 
-        owner = settings.github_repo_owner
-        repo = settings.github_repo_name
-        token = settings.github_token
+    owner = settings.github_repo_owner
+    repo = settings.github_repo_name
+    token = settings.github_token
 
-        if not owner or not repo or not token:
-            error_msg = (
-                "GitHub analysis requires GITHUB_REPO_OWNER, GITHUB_REPO_NAME, "
-                "and GITHUB_TOKEN in .env"
-            )
-            logger.error(error_msg)
-            if sync_record:
-                async with async_session() as session:
-                    rec = await session.get(type(sync_record), sync_record.id)
-                    if rec:
-                        rec.status = "failed"
-                        rec.error_message = error_msg
-                        rec.synced_at = datetime.now(timezone.utc)
-                        await session.commit()
-            return {"error": error_msg}
+    if not owner or not repo or not token:
+        error_msg = (
+            "GitHub analysis requires GITHUB_REPO_OWNER, GITHUB_REPO_NAME, "
+            "and GITHUB_TOKEN in .env"
+        )
+        logger.error(error_msg)
+        update_sync_record("failed", error_msg=error_msg)
+        return {"error": error_msg}
 
-        try:
-            stats = await analyze_repo(owner=owner, repo=repo, github_token=token)
+    async def _analyze():
+        return await analyze_repo(owner=owner, repo=repo, github_token=token)
 
-            if sync_record:
-                async with async_session() as session:
-                    rec = await session.get(type(sync_record), sync_record.id)
-                    if rec:
-                        rec.status = "success"
-                        rec.contributors_analyzed = stats["contributors_analyzed"]
-                        rec.domains_extracted = stats["domains_extracted"]
-                        rec.synced_at = datetime.now(timezone.utc)
-                        await session.commit()
+    try:
+        stats = run_async(_analyze())
+        update_sync_record("success", stats=stats)
 
-            logger.info(
-                f"GitHub sync complete: {stats['contributors_analyzed']} contributors, "
-                f"{stats['domains_extracted']} domains"
-            )
-            return stats
+        logger.info(
+            f"GitHub sync complete: {stats['contributors_analyzed']} contributors, "
+            f"{stats['domains_extracted']} domains"
+        )
+        return stats
 
-        except Exception as exc:
-            error_msg = str(exc)
-            logger.error(f"GitHub sync failed: {error_msg}")
-            if sync_record:
-                async with async_session() as session:
-                    rec = await session.get(type(sync_record), sync_record.id)
-                    if rec:
-                        rec.status = "failed"
-                        rec.error_message = error_msg
-                        rec.synced_at = datetime.now(timezone.utc)
-                        await session.commit()
-            raise
-
-    return run_async(_run())
+    except Exception as exc:
+        error_msg = str(exc)
+        logger.error(f"GitHub sync failed: {error_msg}")
+        update_sync_record("failed", error_msg=error_msg)
+        raise
 
 
 def _send_manager_dm(
