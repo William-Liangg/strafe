@@ -17,10 +17,10 @@ Analyze the following Slack thread and generate a complete Jira ticket draft.
 
 ## Rules:
 1. Title: Max 80 characters, imperative verb form (e.g., "Add margin fields to /v2/quotes endpoint")
-2. Description: Full markdown with context including:
-   - What was requested
-   - Who requested it and why it matters
-   - Any deadlines or urgency mentioned
+2. Description: Full markdown containing bullet points detailing exactly what the engineer needs to do for the ticket. Do NOT include a summary or background context paragraph.
+   - List actionable engineering steps
+   - Include any explicitly stated acceptance criteria
+   - Include any deadlines or urgency mentioned
    - Link back to the Slack thread
 3. Priority: Based on urgency signals
    - critical: "blocking", "production down", "P0"
@@ -86,6 +86,28 @@ Previous invalid response:
 Original request was to generate a ticket for this Slack thread:
 {thread_content}"""
 
+TICKET_RELATIONSHIP_PROMPT = """You are an expert technical project manager. You need to determine if a newly generated ticket is strongly related to any existing active tickets.
+
+## New Ticket:
+Title: {new_title}
+Description:
+{new_description}
+
+## Existing Active Tickets:
+{existing_tickets_json}
+
+---
+Analyze the new ticket against the existing tickets. Is there a strong semantic relationship? 
+A strong relationship means:
+- The new ticket is a duplicate or a very similar sub-task ("similar_to")
+- The new ticket depends on an existing ticket to be completed first, or addresses the exact same underlying codebase component in a way that requires coordination ("depends_on")
+
+Return ONLY valid JSON with no preamble, no markdown fences, and no explanation:
+{{
+  "related_ticket_id": "UUID string of the related ticket, or null if no strong relationship exists",
+  "relation_type": "similar_to or depends_on, or null if no strong relationship exists"
+}}
+"""
 
 class TicketGenerator:
     def __init__(self):
@@ -284,6 +306,44 @@ class TicketGenerator:
             data["description"] = "No description generated."
 
         return data
+
+    async def find_related_ticket(self, new_ticket_data: dict, existing_tickets: list) -> dict | None:
+        """Analyze a new ticket against existing tickets to find semantic relationships."""
+        if not existing_tickets:
+            return None
+
+        # Build JSON array of existing tickets (minimized for tokens)
+        import json
+        tickets_info = []
+        for t in existing_tickets:
+            tickets_info.append({
+                "id": str(t.id),
+                "title": t.title,
+                "description": t.description[:200] + "..." if t.description and len(t.description) > 200 else t.description,
+            })
+
+        prompt = TICKET_RELATIONSHIP_PROMPT.format(
+            new_title=new_ticket_data.get("title", ""),
+            new_description=new_ticket_data.get("description", ""),
+            existing_tickets_json=json.dumps(tickets_info, indent=2)
+        )
+
+        response_text, _ = self._call_claude(prompt)
+        result = self._parse_json_response(response_text)
+
+        if not result:
+            return None
+
+        related_id = result.get("related_ticket_id")
+        relation_type = result.get("relation_type")
+
+        if related_id and relation_type in ["similar_to", "depends_on"]:
+            return {
+                "related_ticket_id": related_id,
+                "relation_type": relation_type
+            }
+
+        return None
 
 
 # Singleton instance

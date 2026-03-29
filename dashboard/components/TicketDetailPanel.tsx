@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { X, ExternalLink, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { marked } from 'marked'
 import type { Ticket } from '@/lib/types'
-import { approveTicket, rejectTicket } from '@/lib/api'
+import { approveTicket, rejectTicket, updateTicket } from '@/lib/api'
+import { CURRENT_USER } from '@/lib/user'
 
 interface TicketDetailPanelProps {
   ticket: Ticket
@@ -71,9 +72,34 @@ export function TicketDetailPanel({ ticket, onClose, onUpdate }: TicketDetailPan
   const [error, setError] = useState<string | null>(null)
   const [localTicket, setLocalTicket] = useState(ticket)
 
+  const [isEditing, setIsEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState(ticket.title)
+  const [editDescription, setEditDescription] = useState(ticket.description || '')
+  const [editStoryPoints, setEditStoryPoints] = useState(ticket.story_points || 3)
+  const [isSaving, setIsSaving] = useState(false)
+
   const isDraft = localTicket.status === 'draft'
   const isCreated = localTicket.status === 'created'
   const isRejected = localTicket.status === 'rejected'
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    setError(null)
+    try {
+      const updated = await updateTicket(ticket.id, {
+        title: editTitle,
+        description: editDescription,
+        story_points: editStoryPoints,
+      })
+      setLocalTicket(updated)
+      setIsEditing(false)
+      onUpdate?.(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save edits')
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const handleApprove = async () => {
     if (!showConfirm) { setShowConfirm(true); return }
@@ -138,20 +164,41 @@ export function TicketDetailPanel({ ticket, onClose, onUpdate }: TicketDetailPan
             >
               {statusLabel(localTicket.status)}
             </span>
-            <button
-              onClick={onClose}
-              className="text-[#a3aac4] hover:text-white transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-4">
+              {!isEditing && localTicket.suggested_assignee_name === CURRENT_USER.name && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="text-xs font-bold text-[#bd9dff] hover:underline uppercase tracking-widest"
+                  style={{ fontFamily: 'var(--font-space-grotesk)' }}
+                >
+                  Edit Ticket
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="text-[#a3aac4] hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
-          <h3
-            className="text-xl font-black leading-tight tracking-tight text-white mb-4"
-            style={{ fontFamily: 'var(--font-space-grotesk)' }}
-          >
-            {localTicket.title}
-          </h3>
+          {isEditing ? (
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="w-full text-xl font-black leading-tight tracking-tight text-white mb-4 bg-black/40 border-2 border-[#bd9dff] p-2 focus:outline-none"
+              style={{ fontFamily: 'var(--font-space-grotesk)' }}
+            />
+          ) : (
+            <h3
+              className="text-xl font-black leading-tight tracking-tight text-white mb-4"
+              style={{ fontFamily: 'var(--font-space-grotesk)' }}
+            >
+              {localTicket.title}
+            </h3>
+          )}
 
           <div className="flex flex-wrap gap-2">
             <span
@@ -176,6 +223,18 @@ export function TicketDetailPanel({ ticket, onClose, onUpdate }: TicketDetailPan
               {channel}
             </span>
           </div>
+
+          {localTicket.related_ticket_id && (
+            <div className="mt-4 flex items-center">
+              <span
+                className="px-3 py-1 bg-[#192540] border-2 border-dashed border-[#bd9dff] text-[#bd9dff] text-[10px] font-black uppercase tracking-widest flex items-center gap-2 cursor-help"
+                style={{ fontFamily: 'var(--font-space-grotesk)' }}
+                title={`Related Ticket ID: ${localTicket.related_ticket_id}`}
+              >
+                ⚯ {localTicket.relation_type?.replace('_', ' ') || 'RELATED'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Scrollable content */}
@@ -211,12 +270,23 @@ export function TicketDetailPanel({ ticket, onClose, onUpdate }: TicketDetailPan
               >
                 Story Points
               </p>
-              <div
-                className="text-2xl font-black text-white"
-                style={{ fontFamily: 'var(--font-space-grotesk)' }}
-              >
-                {localTicket.story_points}
-              </div>
+              {isEditing ? (
+                <select
+                  value={editStoryPoints}
+                  onChange={(e) => setEditStoryPoints(Number(e.target.value))}
+                  className="w-full bg-black/40 border-2 border-[#bd9dff] p-1 text-white font-black outline-none"
+                  style={{ fontFamily: 'var(--font-space-grotesk)' }}
+                >
+                  {[1, 2, 3, 5, 8].map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              ) : (
+                <div
+                  className="text-2xl font-black text-white"
+                  style={{ fontFamily: 'var(--font-space-grotesk)' }}
+                >
+                  {localTicket.story_points}
+                </div>
+              )}
             </div>
           </div>
 
@@ -229,10 +299,19 @@ export function TicketDetailPanel({ ticket, onClose, onUpdate }: TicketDetailPan
               <span className="w-1 h-3 bg-[#bd9dff] inline-block" />
               Description
             </h4>
-            <div
-              className="text-[#a3aac4] text-sm leading-relaxed prose-invert [&_code]:bg-black/40 [&_code]:px-1 [&_code]:font-mono [&_code]:text-[#a88cfb] [&_p]:mb-2"
-              dangerouslySetInnerHTML={{ __html: descriptionHtml }}
-            />
+            {isEditing ? (
+               <textarea
+                 value={editDescription}
+                 onChange={(e) => setEditDescription(e.target.value)}
+                 rows={10}
+                 className="w-full bg-[#0f1930] border-2 border-[#bd9dff] p-3 text-[#dee5ff] text-sm focus:outline-none resize-none font-mono"
+               />
+            ) : (
+              <div
+                className="text-[#a3aac4] text-sm leading-relaxed prose-invert [&_code]:bg-black/40 [&_code]:px-1 [&_code]:font-mono [&_code]:text-[#a88cfb] [&_p]:mb-2"
+                dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+              />
+            )}
           </div>
 
           {/* Assignee */}
@@ -333,7 +412,7 @@ export function TicketDetailPanel({ ticket, onClose, onUpdate }: TicketDetailPan
         {/* Sticky footer */}
         <div className="absolute bottom-0 left-0 w-full bg-slate-900 border-t-4 border-black p-6 shadow-[0px_-8px_20px_rgba(0,0,0,0.5)] z-20">
           {/* ── APPROVED STATE ── */}
-          {isCreated && (
+          {isCreated && !isEditing && (
             <>
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 bg-green-500 flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0">
@@ -392,7 +471,7 @@ export function TicketDetailPanel({ ticket, onClose, onUpdate }: TicketDetailPan
           )}
 
           {/* ── REJECTED STATE ── */}
-          {isRejected && (
+          {isRejected && !isEditing && (
             <button
               onClick={onClose}
               className="w-full bg-[#192540] text-[#dee5ff] py-3 border-2 border-black font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
@@ -403,7 +482,33 @@ export function TicketDetailPanel({ ticket, onClose, onUpdate }: TicketDetailPan
           )}
 
           {/* ── DRAFT STATE ── */}
-          {isDraft && (
+          {isEditing && (
+             <div className="flex gap-3">
+               <button
+                 onClick={handleSave}
+                 disabled={isSaving}
+                 className="flex-1 py-3 bg-[#bd9dff] text-[#3c0089] border-2 border-black font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50"
+                 style={{ fontFamily: 'var(--font-space-grotesk)' }}
+               >
+                 {isSaving ? 'Saving…' : 'Save Changes'}
+               </button>
+               <button
+                 onClick={() => {
+                   setIsEditing(false)
+                   setEditTitle(localTicket.title)
+                   setEditDescription(localTicket.description || '')
+                   setEditStoryPoints(localTicket.story_points || 3)
+                   setError(null)
+                 }}
+                 className="px-6 py-3 border-2 border-black text-[#a3aac4] font-bold hover:text-white transition-colors"
+                 style={{ fontFamily: 'var(--font-space-grotesk)' }}
+               >
+                 Cancel
+               </button>
+             </div>
+          )}
+
+          {isDraft && !isEditing && (
             <>
               {showConfirm ? (
                 <div className="space-y-4">

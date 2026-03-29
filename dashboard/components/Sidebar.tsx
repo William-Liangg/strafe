@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Bot, Ticket, BarChart3, FileText, Hash, Users } from 'lucide-react'
 
+import { CURRENT_USER } from '@/lib/user'
+
 const navItems = [
   { href: '/', label: 'Live Feed', Icon: Bot },
   { href: '/tickets', label: 'Tickets', Icon: Ticket },
@@ -47,12 +49,12 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto pt-4 border-t-2 border-white/10 flex items-center gap-3">
-        <div className="w-10 h-10 shrink-0 border-2 border-black bg-violet-400 flex items-center justify-center font-black text-black text-sm">
-          MP
+        <div className={`w-10 h-10 shrink-0 border-2 border-black ${CURRENT_USER.color} flex items-center justify-center font-black text-black text-sm`}>
+          {CURRENT_USER.initials}
         </div>
         <div className="flex flex-col min-w-0">
-          <span className="text-sm font-bold text-white truncate">Maya Patel</span>
-          <span className="text-xs text-slate-400">Lead Architect</span>
+          <span className="text-sm font-bold text-white truncate">{CURRENT_USER.name}</span>
+          <span className="text-xs text-slate-400">{CURRENT_USER.role}</span>
         </div>
       </div>
     </aside>

@@ -22,3 +22,10 @@ export async function rejectTicket(ticketId: string, reason?: string) {
     body: JSON.stringify({ reason }),
   })
 }
+
+export async function updateTicket(ticketId: string, updates: Partial<any>) {
+  return fetchAPI(`/tickets/${ticketId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  })
+}

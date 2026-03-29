@@ -331,9 +331,10 @@ async def seed_historical_tasks_and_tickets():
             {
                 "title": "Fix pagination returning duplicate results on /orders",
                 "description": (
-                    "## Summary\nPagination on orders endpoint returns duplicate items "
-                    "at page boundaries.\n\n## Acceptance Criteria\n- Offset-based pagination returns unique items\n"
-                    "- Regression test added"
+                    "## Tasks\n"
+                    "- Update offset-based pagination on orders endpoint to handle page boundaries correctly\n"
+                    "- Ensure unique items are returned across pages\n"
+                    "- Add a regression test to prevent recurrence"
                 ),
                 "priority": "high",
                 "labels": ["adhoc", "bug"],
@@ -353,9 +354,10 @@ async def seed_historical_tasks_and_tickets():
             {
                 "title": "Add discount_code field to sales quotes response",
                 "description": (
-                    "## Summary\nSales needs discount_code visible in quotes response "
-                    "for deal tracking.\n\n## Acceptance Criteria\n- discount_code field added to /v2/quotes response\n"
-                    "- Field is nullable when no discount applied"
+                    "## Tasks\n"
+                    "- Add `discount_code` field to the `/v2/quotes` response schema\n"
+                    "- Ensure `discount_code` is nullable when no discount is applied\n"
+                    "- Confirm tracking requirements are met for the Sales team"
                 ),
                 "priority": "medium",
                 "labels": ["adhoc", "feature"],
@@ -375,10 +377,10 @@ async def seed_historical_tasks_and_tickets():
             {
                 "title": "Auth tokens expiring early on mobile clients",
                 "description": (
-                    "## Summary\nMobile users reporting frequent logouts. "
-                    "Token TTL appears misconfigured after last auth-service deploy.\n\n"
-                    "## Acceptance Criteria\n- Token TTL matches documented 7-day value\n"
-                    "- Mobile regression test passes"
+                    "## Tasks\n"
+                    "- Investigate token TTL misconfiguration after the last auth-service deploy\n"
+                    "- Set Token TTL to match the documented 7-day value for mobile clients\n"
+                    "- Verify mobile regression tests are passing"
                 ),
                 "priority": "critical",
                 "labels": ["adhoc", "bug"],
@@ -401,7 +403,7 @@ async def seed_historical_tasks_and_tickets():
         sprint_12_tickets = [
             {
                 "title": "Add rate limiting to public API endpoints",
-                "description": "## Summary\nCustomer reported API abuse. Need rate limiting on public endpoints.",
+                "description": "## Tasks\n- Implement rate limiting on public API endpoints to mitigate API abuse\n- Set default limit to 100 requests per minute per IP\n- Add bypass for internal infrastructure monitoring",
                 "priority": "high",
                 "labels": ["adhoc", "security"],
                 "story_points": 3,
@@ -417,7 +419,7 @@ async def seed_historical_tasks_and_tickets():
             },
             {
                 "title": "Fix memory leak in websocket connections",
-                "description": "## Summary\nProd servers OOMing after 48hrs. WebSocket connections not cleaning up.",
+                "description": "## Tasks\n- Address WebSocket memory leak causing prod servers to OOM after 48h\n- Investigate connection cleanup logic in `ws_manager.py`\n- Add monitoring alert for memory growth on websocket nodes",
                 "priority": "critical",
                 "labels": ["adhoc", "bug"],
                 "story_points": 3,
@@ -433,7 +435,7 @@ async def seed_historical_tasks_and_tickets():
             },
             {
                 "title": "Add CSV export to analytics dashboard",
-                "description": "## Summary\nFinance team needs CSV exports from analytics for reporting.",
+                "description": "## Tasks\n- Implement CSV export endpoint/button on analytics dashboard for Finance\n- Ensure all filtered data is included in the export\n- Add timestamp and generator metadata to the filename",
                 "priority": "medium",
                 "labels": ["adhoc", "feature"],
                 "story_points": 2,
@@ -453,7 +455,7 @@ async def seed_historical_tasks_and_tickets():
         sprint_13_tickets = [
             {
                 "title": "Urgent: Fix SSO login broken for enterprise customers",
-                "description": "## Summary\nEnterprise SSO login returning 500 errors. High priority customer escalation.",
+                "description": "## Tasks\n- Investigate and fix 500 errors preventing Enterprise SSO logins\n- Check SAML assertion parsing logic for recent regression\n- Update logout flow to ensure session invalidation across all nodes",
                 "priority": "critical",
                 "labels": ["adhoc", "bug"],
                 "story_points": 5,
@@ -469,7 +471,7 @@ async def seed_historical_tasks_and_tickets():
             },
             {
                 "title": "Add custom field support to quote builder",
-                "description": "## Summary\nSales needs custom fields in quote builder for enterprise deals.",
+                "description": "## Tasks\n- Implement custom field functionality in the quote builder\n- Allow users to add arbitrary key-value pairs to quote metadata\n- Ensure custom fields are persisted to the database and reflected in the UI",
                 "priority": "high",
                 "labels": ["adhoc", "feature"],
                 "story_points": 3,
@@ -485,7 +487,7 @@ async def seed_historical_tasks_and_tickets():
             },
             {
                 "title": "Sales dashboard filter not returning correct results",
-                "description": "## Summary\nSales dashboard filter by region returning wrong data for APAC.",
+                "description": "## Tasks\n- Fix filtering issue where APAC region returns incorrect sales data\n- Verify time zone conversion logic in the sales aggregator\n- Update dashboard query to handle region codes correctly",
                 "priority": "high",
                 "labels": ["adhoc", "bug"],
                 "story_points": 2,
@@ -501,7 +503,7 @@ async def seed_historical_tasks_and_tickets():
             },
             {
                 "title": "Webhook delivery failures to customer endpoints",
-                "description": "## Summary\nWebhook retries exhausting. Customer integration failing silently.",
+                "description": "## Tasks\n- Fix webhook retries exhausting and resolve silent failures for customers\n- Increase max retries to 5 with exponential backoff\n- Implement DLQ (Dead Letter Queue) processing for manual investigation",
                 "priority": "medium",
                 "labels": ["adhoc", "bug"],
                 "story_points": 2,
@@ -517,7 +519,7 @@ async def seed_historical_tasks_and_tickets():
             },
             {
                 "title": "Add bulk import for inventory items",
-                "description": "## Summary\nOperations team needs to import 10k+ items. Current UI times out.",
+                "description": "## Tasks\n- Implement paginated/background bulk import so UI handles 10k+ items without timeout\n- Offload CSV processing to a Celery worker\n- Add progress bar and status updates to the inventory upload UI",
                 "priority": "medium",
                 "labels": ["adhoc", "feature"],
                 "story_points": 1,
@@ -535,19 +537,19 @@ async def seed_historical_tasks_and_tickets():
 
         # ── Sprint 14: 13 planned tickets ─────────────────────────────────────────
         sprint_14_planned_tickets = [
-            {"title": "Implement user dashboard redesign", "description": "Redesign user dashboard per new Figma specs.", "priority": "high", "labels": ["planned", "feature"], "story_points": 5, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-44"},
-            {"title": "Add PostgreSQL read replicas support", "description": "Scale read operations with read replica support.", "priority": "high", "labels": ["planned", "infrastructure"], "story_points": 5, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-45"},
-            {"title": "Implement OAuth2 PKCE flow for mobile", "description": "Add PKCE support for mobile OAuth flow.", "priority": "high", "labels": ["planned", "security"], "story_points": 3, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-46"},
-            {"title": "Build analytics data pipeline v2", "description": "Migrate analytics to new event-driven pipeline.", "priority": "medium", "labels": ["planned", "data"], "story_points": 5, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-47"},
-            {"title": "Add unit tests for payment service", "description": "Increase test coverage for payment service to 80%.", "priority": "medium", "labels": ["planned", "testing"], "story_points": 3, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-48"},
-            {"title": "Implement email template system", "description": "Build reusable email template system with variables.", "priority": "medium", "labels": ["planned", "feature"], "story_points": 3, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-49"},
-            {"title": "Add Datadog APM integration", "description": "Integrate Datadog APM for production monitoring.", "priority": "medium", "labels": ["planned", "observability"], "story_points": 2, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-50"},
-            {"title": "Migrate to Python 3.12", "description": "Upgrade all services to Python 3.12.", "priority": "low", "labels": ["planned", "maintenance"], "story_points": 2, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-51"},
-            {"title": "Document API versioning strategy", "description": "Write technical documentation for API versioning.", "priority": "low", "labels": ["planned", "documentation"], "story_points": 1, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-52"},
-            {"title": "Implement feature flags service", "description": "Build internal feature flags for gradual rollouts.", "priority": "high", "labels": ["planned", "infrastructure"], "story_points": 3, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-53"},
-            {"title": "Add GraphQL subscriptions support", "description": "Implement real-time GraphQL subscriptions.", "priority": "medium", "labels": ["planned", "feature"], "story_points": 3, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-54"},
-            {"title": "Implement retry logic for external APIs", "description": "Add exponential backoff retry for third-party API calls.", "priority": "medium", "labels": ["planned", "reliability"], "story_points": 2, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-55"},
-            {"title": "Add health check endpoints to all services", "description": "Standardize health check endpoints across services.", "priority": "low", "labels": ["planned", "infrastructure"], "story_points": 2, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-56"},
+            {"title": "Implement user dashboard redesign", "description": "## Tasks\n- Redesign user dashboard per new Figma specs\n- Implement new navigation layout and color palette\n- Ensure mobile responsiveness for all widgets", "priority": "high", "labels": ["planned", "feature"], "story_points": 5, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-44"},
+            {"title": "Add PostgreSQL read replicas support", "description": "## Tasks\n- Scale read operations with read replica support\n- Update SQLAlchemy configuration to handle read/write splitting\n- Add health check for database replicas", "priority": "high", "labels": ["planned", "infrastructure"], "story_points": 5, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-45"},
+            {"title": "Implement OAuth2 PKCE flow for mobile", "description": "## Tasks\n- Add PKCE support for mobile OAuth flow\n- Implement code challenge and verifier generation\n- Update auth-service to validate PKCE tokens", "priority": "high", "labels": ["planned", "security"], "story_points": 3, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-46"},
+            {"title": "Build analytics data pipeline v2", "description": "## Tasks\n- Migrate analytics to new event-driven pipeline\n- Implement Kafka producer/consumer for event tracking\n- Validate data consistency between old and new pipelines", "priority": "medium", "labels": ["planned", "data"], "story_points": 5, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-47"},
+            {"title": "Add unit tests for payment service", "description": "## Tasks\n- Increase test coverage for payment service to 80%\n- Add mock objects for 3rd party payment gateway\n- Test edge cases for payment failures and retries", "priority": "medium", "labels": ["planned", "testing"], "story_points": 3, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-48"},
+            {"title": "Implement email template system", "description": "## Tasks\n- Build reusable email template system with variables\n- Integrate with SendGrid API for template management\n- Support dynamic content injection for user personalized emails", "priority": "medium", "labels": ["planned", "feature"], "story_points": 3, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-49"},
+            {"title": "Add Datadog APM integration", "description": "## Tasks\n- Integrate Datadog APM for production monitoring\n- Set up tracing for all microservices\n- Configure custom dashboards for performance metrics", "priority": "medium", "labels": ["planned", "observability"], "story_points": 2, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-50"},
+            {"title": "Migrate to Python 3.12", "description": "## Tasks\n- Upgrade all services to Python 3.12\n- Update Dockerfile and environment specifications\n- Fix any deprecation warnings from 3rd party libraries", "priority": "low", "labels": ["planned", "maintenance"], "story_points": 2, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-51"},
+            {"title": "Document API versioning strategy", "description": "## Tasks\n- Write technical documentation for API versioning\n- Define deprecation policy for old endpoints\n- Publish documentation on the internal developer portal", "priority": "low", "labels": ["planned", "documentation"], "story_points": 1, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-52"},
+            {"title": "Implement feature flags service", "description": "## Tasks\n- Build internal feature flags for gradual rollouts\n- Connect flags to Unleash or custom management UI\n- Add support for percentage-based rollouts", "priority": "high", "labels": ["planned", "infrastructure"], "story_points": 3, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-53"},
+            {"title": "Add GraphQL subscriptions support", "description": "## Tasks\n- Implement real-time GraphQL subscriptions\n- Set up Redis as a message broker for pub/sub\n- Update frontend to handle live data updates via WebSockets", "priority": "medium", "labels": ["planned", "feature"], "story_points": 3, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-54"},
+            {"title": "Implement retry logic for external APIs", "description": "## Tasks\n- Add exponential backoff retry for third-party API calls\n- Implement circuit breaker pattern for external dependencies\n- Log all retry attempts and persistent failures for alerting", "priority": "medium", "labels": ["planned", "reliability"], "story_points": 2, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-55"},
+            {"title": "Add health check endpoints to all services", "description": "## Tasks\n- Standardize health check endpoints across services\n- Return 200 OK only if all critical dependencies (DB, Redis) are healthy\n- Integrate with Kubernetes liveness and readiness probes", "priority": "low", "labels": ["planned", "infrastructure"], "story_points": 2, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-56"},
         ]
 
         # Seed Sprint 14 threads → tasks → tickets
@@ -779,8 +781,8 @@ async def main():
     print("\n=== Strafe Demo Data Seeder ===\n")
     print("Demo state after seeding:")
     print("  Sprint 14 (active): 3 adhoc approved, 0 drafts pending")
-    print("  → Dashboard shows 'Strafe is fully autonomous right now'")
-    print("  → Post-demo approval brings Sprint 14 to 23.5% adhoc (4/17)")
+    print("  -> Dashboard shows 'Strafe is fully autonomous right now'")
+    print("  -> Post-demo approval brings Sprint 14 to 23.5% adhoc (4/17)")
     print("  Sprint 13 (closed): 22.7% adhoc — #sales-engineering top source")
     print("  Sprint 12 (closed): 14.3% adhoc — the baseline\n")
 

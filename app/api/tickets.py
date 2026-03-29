@@ -22,6 +22,8 @@ router = APIRouter()
 class TicketResponse(BaseModel):
     id: str
     detected_task_id: str | None
+    related_ticket_id: str | None
+    relation_type: str | None
     jira_ticket_id: str | None
     jira_ticket_url: str | None
     title: str
@@ -61,6 +63,8 @@ class TicketUpdateRequest(BaseModel):
     estimated_hours: float | None = Field(None, ge=0.25, le=80.0)
     suggested_assignee_slack_id: str | None = None
     suggested_assignee_name: str | None = None
+    related_ticket_id: str | None = None
+    relation_type: str | None = None
     labels: list[str] | None = None
 
 
@@ -86,6 +90,8 @@ def _ticket_to_response(ticket: Ticket) -> TicketResponse:
     return TicketResponse(
         id=str(ticket.id),
         detected_task_id=str(ticket.detected_task_id) if ticket.detected_task_id else None,
+        related_ticket_id=str(ticket.related_ticket_id) if ticket.related_ticket_id else None,
+        relation_type=ticket.relation_type,
         jira_ticket_id=ticket.jira_ticket_id,
         jira_ticket_url=ticket.jira_ticket_url,
         title=ticket.title,
@@ -179,11 +185,7 @@ async def update_ticket(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    if ticket.status != TicketStatus.DRAFT:
-        raise HTTPException(
-            status_code=400,
-            detail="Can only edit tickets in draft status"
-        )
+        # Edit restrictions removed per request to make tickets editable
 
     update_data = updates.model_dump(exclude_unset=True)
 

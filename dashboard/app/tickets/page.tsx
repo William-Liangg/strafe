@@ -39,6 +39,61 @@ function initials(name: string) {
     .slice(0, 2)
 }
 
+
+// ─── relationship grouping ───────────────────────────────────────────────────
+
+type DisplayItem = Ticket | { isLabelRow: true; label: string; parentId: string }
+
+function groupTicketsForDisplay(tickets: Ticket[]): DisplayItem[] {
+  const result: DisplayItem[] = []
+  
+  // Find all children mapping
+  const childrenMap = new Map<string, Ticket[]>()
+  for (const t of tickets) {
+    if (t.related_ticket_id) {
+      const arr = childrenMap.get(t.related_ticket_id) || []
+      arr.push(t)
+      childrenMap.set(t.related_ticket_id, arr)
+    }
+  }
+
+  // Set of IDs already processed
+  const processed = new Set<string>()
+
+  for (const t of tickets) {
+    if (processed.has(t.id)) continue
+    
+    // Is it a child? If so, skip rendering it here UNLESS parent is not in this filtered list
+    if (t.related_ticket_id) {
+      const parentInList = tickets.find(p => p.id === t.related_ticket_id)
+      if (parentInList) {
+        continue // Parent will process it when its turn comes
+      }
+    }
+
+    const children = childrenMap.get(t.id) || []
+    
+    if (children.length > 0) {
+      result.push({ 
+        isLabelRow: true, 
+        label: `⚯ RELATED TICKETS: ${t.jira_ticket_id || 'Ticket'} + ${children.length} dependent`,
+        parentId: t.id
+      })
+      result.push(t)
+      processed.add(t.id)
+      for (const child of children) {
+        result.push(child)
+        processed.add(child.id)
+      }
+    } else {
+      result.push(t)
+      processed.add(t.id)
+    }
+  }
+
+  return result
+}
+
 // ─── filter tabs ─────────────────────────────────────────────────────────────
 
 type StatusFilter = 'all' | 'draft' | 'created' | 'rejected'
@@ -184,7 +239,20 @@ export default function TicketsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y-2 divide-black/10">
-                {filtered.map((ticket) => {
+                {groupTicketsForDisplay(filtered).map((item) => {
+                  if ('isLabelRow' in item) {
+                    return (
+                      <tr key={`label-${item.parentId}`} className="bg-[#192540]/60 border-t-4 border-black">
+                        <td colSpan={6} className="px-6 py-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-[#bd9dff]" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
+                            {item.label}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  }
+
+                  const ticket = item as Ticket
                   const isSelected = selected?.id === ticket.id
                   const stripe = priorityStripe(ticket.priority)
                   const badge = priorityBadge(ticket.priority)
@@ -196,10 +264,13 @@ export default function TicketsPage() {
                     <tr
                       key={ticket.id}
                       onClick={() => setSelected(isSelected ? null : ticket)}
-                      className={statusRowStyle(ticket.status, isSelected)}
+                      className={`${statusRowStyle(ticket.status, isSelected)} ${ticket.related_ticket_id ? 'bg-[#bd9dff]/5' : ''}`}
                     >
-                      <td className="px-6 py-5">
+                      <td className={`px-6 py-5 ${ticket.related_ticket_id ? 'pl-8' : ''}`}>
                         <div className="flex items-center gap-3">
+                          {ticket.related_ticket_id && (
+                            <span className="text-[#bd9dff] text-xl font-light opacity-50 shrink-0 select-none mt-1">↳</span>
+                          )}
                           <div
                             className={`w-2 h-8 shrink-0 shadow-[2px_0px_0px_0px_rgba(0,0,0,1)] ${stripe} ${
                               ticket.status === 'draft' ? 'animate-pulse' : ''

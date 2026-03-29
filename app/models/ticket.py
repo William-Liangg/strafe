@@ -42,6 +42,12 @@ class Ticket(Base):
         UUID(as_uuid=True), ForeignKey("detected_tasks.id"), nullable=True
     )
 
+    # Ticket Relationships
+    related_ticket_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tickets.id"), nullable=True
+    )
+    relation_type: Mapped[str | None] = mapped_column(String, nullable=True)
+
     # Jira fields
     jira_ticket_id: Mapped[str | None] = mapped_column(String, nullable=True)
     jira_ticket_url: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -114,4 +120,12 @@ class Ticket(Base):
     # Relationship to agent decision
     agent_decision: Mapped["AgentDecision"] = relationship(
         "AgentDecision", back_populates="ticket", uselist=False
+    )
+
+    # Self-referencing relationship for related tickets
+    related_ticket: Mapped["Ticket"] = relationship(
+        "Ticket", remote_side=[id], back_populates="related_from"
+    )
+    related_from: Mapped[list["Ticket"]] = relationship(
+        "Ticket", back_populates="related_ticket"
     )

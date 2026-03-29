@@ -17,6 +17,8 @@ export interface Ticket {
   source_channel_name: string | null
   suggested_assignee_name: string | null
   assignee_reason: string | null
+  related_ticket_id: string | null
+  relation_type: string | null
   jira_ticket_id: string | null
   jira_ticket_url: string | null
   rejection_reason: string | null
