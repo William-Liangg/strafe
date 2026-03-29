@@ -5,7 +5,7 @@ import * as d3 from 'd3'
 import { Circle, GitBranch, RefreshCw, Users } from 'lucide-react'
 import { triggerExpertiseSync } from '@/lib/api'
 import { useExpertiseGraph, useExpertiseSyncStatus } from '@/lib/hooks'
-import type { ExpertiseNode } from '@/lib/types'
+import type { ExpertiseNode, ExpertiseEdge } from '@/lib/types'
 
 interface SimNode extends d3.SimulationNodeDatum, ExpertiseNode {
   radius: number
@@ -272,7 +272,7 @@ export default function ExpertisePage() {
 
   const nodes = useMemo<SimNode[]>(
     () =>
-      (graph?.nodes ?? []).map((node, index) => ({
+      (graph?.nodes ?? []).map((node: ExpertiseNode, index: number) => ({
         ...node,
         radius: 18 + node.expertise.length * 3,
         color: COLOR_SCALE(String(index)),
@@ -282,7 +282,7 @@ export default function ExpertisePage() {
 
   const links = useMemo<SimLink[]>(
     () =>
-      (graph?.edges ?? []).map((edge) => ({
+      (graph?.edges ?? []).map((edge: ExpertiseEdge) => ({
         source: edge.source,
         target: edge.target,
         shared_domains: edge.shared_domains,
@@ -295,13 +295,13 @@ export default function ExpertisePage() {
   const connectionCount = graph?.edges.length ?? 0
   const domainCount = useMemo(
     () =>
-      new Set((graph?.nodes ?? []).flatMap((node) => node.expertise.map((domain) => domain.domain))).size,
+      new Set((graph?.nodes ?? []).flatMap((node: ExpertiseNode) => node.expertise.map((domain) => domain.domain))).size,
     [graph],
   )
 
-  const sortedNodes = useMemo(
+  const sortedNodes = useMemo<ExpertiseNode[]>(
     () =>
-      [...(graph?.nodes ?? [])].sort((left, right) => {
+      [...(graph?.nodes ?? [])].sort((left: ExpertiseNode, right: ExpertiseNode) => {
         const leftScore = left.expertise[0]?.score ?? 0
         const rightScore = right.expertise[0]?.score ?? 0
         if (rightScore !== leftScore) {
