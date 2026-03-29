@@ -248,45 +248,59 @@ export function TicketDetailPanel({ ticket, onClose, onUpdate }: TicketDetailPan
           )}
 
           {/* Meta grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-[#0f1930] border-2 border-black">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 bg-[#0f1930] border-2 border-black">
               <p
                 className="text-[10px] font-black text-[#40485d] uppercase tracking-widest mb-1"
                 style={{ fontFamily: 'var(--font-space-grotesk)' }}
               >
                 Priority
               </p>
-              <div className={`flex items-center gap-1 font-black italic text-lg ${priorityColor(localTicket.priority)}`}
+              <div className={`flex items-center gap-1 font-black italic text-sm ${priorityColor(localTicket.priority)}`}
                 style={{ fontFamily: 'var(--font-space-grotesk)' }}
               >
-                <AlertTriangle className="h-4 w-4" />
+                <AlertTriangle className="h-3 w-3" />
                 {priorityLabel(localTicket.priority)}
               </div>
             </div>
-            <div className="p-4 bg-[#0f1930] border-2 border-black">
+            <div className="p-3 bg-[#0f1930] border-2 border-black">
               <p
                 className="text-[10px] font-black text-[#40485d] uppercase tracking-widest mb-1"
                 style={{ fontFamily: 'var(--font-space-grotesk)' }}
               >
-                Story Points
+                Points
               </p>
               {isEditing ? (
                 <select
                   value={editStoryPoints}
                   onChange={(e) => setEditStoryPoints(Number(e.target.value))}
-                  className="w-full bg-black/40 border-2 border-[#bd9dff] p-1 text-white font-black outline-none"
+                  className="w-full bg-black/40 border-2 border-[#bd9dff] p-0.5 text-white font-black text-xs outline-none"
                   style={{ fontFamily: 'var(--font-space-grotesk)' }}
                 >
                   {[1, 2, 3, 5, 8].map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               ) : (
                 <div
-                  className="text-2xl font-black text-white"
+                  className="text-lg font-black text-white"
                   style={{ fontFamily: 'var(--font-space-grotesk)' }}
                 >
                   {localTicket.story_points}
                 </div>
               )}
+            </div>
+            <div className="p-3 bg-[#0f1930] border-2 border-black">
+              <p
+                className="text-[10px] font-black text-[#40485d] uppercase tracking-widest mb-1"
+                style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              >
+                Est. Time
+              </p>
+              <div
+                className="text-lg font-black text-[#bd9dff]"
+                style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              >
+                {localTicket.estimated_hours ? `${localTicket.estimated_hours}h` : '—'}
+              </div>
             </div>
           </div>
 

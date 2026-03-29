@@ -339,6 +339,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "high",
                 "labels": ["adhoc", "bug"],
                 "story_points": 3,
+                "estimated_hours": 4.5,
                 "suggested_assignee_slack_id": "U_ALEX_CHEN",
                 "suggested_assignee_name": "Alex Chen",
                 "assignee_reason": "12 PRs on orders-service in last 90 days",
@@ -362,6 +363,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "medium",
                 "labels": ["adhoc", "feature"],
                 "story_points": 2,
+                "estimated_hours": 2.5,
                 "suggested_assignee_slack_id": "U_MAYA_PATEL",
                 "suggested_assignee_name": "Maya Patel",
                 "assignee_reason": "8 PRs on quotes-service in last 90 days",
@@ -385,6 +387,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "critical",
                 "labels": ["adhoc", "bug"],
                 "story_points": 3,
+                "estimated_hours": 5.0,
                 "suggested_assignee_slack_id": "U_JORDAN_LEE",
                 "suggested_assignee_name": "Jordan Lee",
                 "assignee_reason": "15 PRs on auth-service in last 90 days",
@@ -407,6 +410,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "high",
                 "labels": ["adhoc", "security"],
                 "story_points": 3,
+                "estimated_hours": 4.5,
                 "suggested_assignee_slack_id": "U_JORDAN_LEE",
                 "suggested_assignee_name": "Jordan Lee",
                 "source_channel_id": "C_BACKEND_HELP",
@@ -423,6 +427,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "critical",
                 "labels": ["adhoc", "bug"],
                 "story_points": 3,
+                "estimated_hours": 6.0,
                 "suggested_assignee_slack_id": "U_ALEX_CHEN",
                 "suggested_assignee_name": "Alex Chen",
                 "source_channel_id": "C_BACKEND_HELP",
@@ -439,6 +444,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "medium",
                 "labels": ["adhoc", "feature"],
                 "story_points": 2,
+                "estimated_hours": 3.0,
                 "suggested_assignee_slack_id": "U_SAM_WILSON",
                 "suggested_assignee_name": "Sam Wilson",
                 "source_channel_id": "C_BACKEND_HELP",
@@ -459,6 +465,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "critical",
                 "labels": ["adhoc", "bug"],
                 "story_points": 5,
+                "estimated_hours": 10.0,
                 "suggested_assignee_slack_id": "U_JORDAN_LEE",
                 "suggested_assignee_name": "Jordan Lee",
                 "source_channel_id": "C_SALES_ENG",
@@ -475,6 +482,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "high",
                 "labels": ["adhoc", "feature"],
                 "story_points": 3,
+                "estimated_hours": 6.5,
                 "suggested_assignee_slack_id": "U_MAYA_PATEL",
                 "suggested_assignee_name": "Maya Patel",
                 "source_channel_id": "C_SALES_ENG",
@@ -491,6 +499,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "high",
                 "labels": ["adhoc", "bug"],
                 "story_points": 2,
+                "estimated_hours": 2.5,
                 "suggested_assignee_slack_id": "U_SAM_WILSON",
                 "suggested_assignee_name": "Sam Wilson",
                 "source_channel_id": "C_SALES_ENG",
@@ -507,6 +516,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "medium",
                 "labels": ["adhoc", "bug"],
                 "story_points": 2,
+                "estimated_hours": 4.0,
                 "suggested_assignee_slack_id": "U_SAM_WILSON",
                 "suggested_assignee_name": "Sam Wilson",
                 "source_channel_id": "C_BACKEND_HELP",
@@ -523,6 +533,7 @@ async def seed_historical_tasks_and_tickets():
                 "priority": "medium",
                 "labels": ["adhoc", "feature"],
                 "story_points": 1,
+                "estimated_hours": 1.5,
                 "suggested_assignee_slack_id": "U_ALEX_CHEN",
                 "suggested_assignee_name": "Alex Chen",
                 "source_channel_id": "C_BACKEND_HELP",
@@ -537,19 +548,19 @@ async def seed_historical_tasks_and_tickets():
 
         # ── Sprint 14: 13 planned tickets ─────────────────────────────────────────
         sprint_14_planned_tickets = [
-            {"title": "Implement user dashboard redesign", "description": "## Tasks\n- Redesign user dashboard per new Figma specs\n- Implement new navigation layout and color palette\n- Ensure mobile responsiveness for all widgets", "priority": "high", "labels": ["planned", "feature"], "story_points": 5, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-44"},
-            {"title": "Add PostgreSQL read replicas support", "description": "## Tasks\n- Scale read operations with read replica support\n- Update SQLAlchemy configuration to handle read/write splitting\n- Add health check for database replicas", "priority": "high", "labels": ["planned", "infrastructure"], "story_points": 5, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-45"},
-            {"title": "Implement OAuth2 PKCE flow for mobile", "description": "## Tasks\n- Add PKCE support for mobile OAuth flow\n- Implement code challenge and verifier generation\n- Update auth-service to validate PKCE tokens", "priority": "high", "labels": ["planned", "security"], "story_points": 3, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-46"},
-            {"title": "Build analytics data pipeline v2", "description": "## Tasks\n- Migrate analytics to new event-driven pipeline\n- Implement Kafka producer/consumer for event tracking\n- Validate data consistency between old and new pipelines", "priority": "medium", "labels": ["planned", "data"], "story_points": 5, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-47"},
-            {"title": "Add unit tests for payment service", "description": "## Tasks\n- Increase test coverage for payment service to 80%\n- Add mock objects for 3rd party payment gateway\n- Test edge cases for payment failures and retries", "priority": "medium", "labels": ["planned", "testing"], "story_points": 3, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-48"},
-            {"title": "Implement email template system", "description": "## Tasks\n- Build reusable email template system with variables\n- Integrate with SendGrid API for template management\n- Support dynamic content injection for user personalized emails", "priority": "medium", "labels": ["planned", "feature"], "story_points": 3, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-49"},
-            {"title": "Add Datadog APM integration", "description": "## Tasks\n- Integrate Datadog APM for production monitoring\n- Set up tracing for all microservices\n- Configure custom dashboards for performance metrics", "priority": "medium", "labels": ["planned", "observability"], "story_points": 2, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-50"},
-            {"title": "Migrate to Python 3.12", "description": "## Tasks\n- Upgrade all services to Python 3.12\n- Update Dockerfile and environment specifications\n- Fix any deprecation warnings from 3rd party libraries", "priority": "low", "labels": ["planned", "maintenance"], "story_points": 2, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-51"},
-            {"title": "Document API versioning strategy", "description": "## Tasks\n- Write technical documentation for API versioning\n- Define deprecation policy for old endpoints\n- Publish documentation on the internal developer portal", "priority": "low", "labels": ["planned", "documentation"], "story_points": 1, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-52"},
-            {"title": "Implement feature flags service", "description": "## Tasks\n- Build internal feature flags for gradual rollouts\n- Connect flags to Unleash or custom management UI\n- Add support for percentage-based rollouts", "priority": "high", "labels": ["planned", "infrastructure"], "story_points": 3, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-53"},
-            {"title": "Add GraphQL subscriptions support", "description": "## Tasks\n- Implement real-time GraphQL subscriptions\n- Set up Redis as a message broker for pub/sub\n- Update frontend to handle live data updates via WebSockets", "priority": "medium", "labels": ["planned", "feature"], "story_points": 3, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-54"},
-            {"title": "Implement retry logic for external APIs", "description": "## Tasks\n- Add exponential backoff retry for third-party API calls\n- Implement circuit breaker pattern for external dependencies\n- Log all retry attempts and persistent failures for alerting", "priority": "medium", "labels": ["planned", "reliability"], "story_points": 2, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-55"},
-            {"title": "Add health check endpoints to all services", "description": "## Tasks\n- Standardize health check endpoints across services\n- Return 200 OK only if all critical dependencies (DB, Redis) are healthy\n- Integrate with Kubernetes liveness and readiness probes", "priority": "low", "labels": ["planned", "infrastructure"], "story_points": 2, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-56"},
+            {"title": "Implement user dashboard redesign", "description": "## Tasks\n- Redesign user dashboard per new Figma specs\n- Implement new navigation layout and color palette\n- Ensure mobile responsiveness for all widgets", "priority": "high", "labels": ["planned", "feature"], "story_points": 5, "estimated_hours": 12.0, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-44"},
+            {"title": "Add PostgreSQL read replicas support", "description": "## Tasks\n- Scale read operations with read replica support\n- Update SQLAlchemy configuration to handle read/write splitting\n- Add health check for database replicas", "priority": "high", "labels": ["planned", "infrastructure"], "story_points": 5, "estimated_hours": 15.0, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-45"},
+            {"title": "Implement OAuth2 PKCE flow for mobile", "description": "## Tasks\n- Add PKCE support for mobile OAuth flow\n- Implement code challenge and verifier generation\n- Update auth-service to validate PKCE tokens", "priority": "high", "labels": ["planned", "security"], "story_points": 3, "estimated_hours": 8.0, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-46"},
+            {"title": "Build analytics data pipeline v2", "description": "## Tasks\n- Migrate analytics to new event-driven pipeline\n- Implement Kafka producer/consumer for event tracking\n- Validate data consistency between old and new pipelines", "priority": "medium", "labels": ["planned", "data"], "story_points": 5, "estimated_hours": 20.0, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-47"},
+            {"title": "Add unit tests for payment service", "description": "## Tasks\n- Increase test coverage for payment service to 80%\n- Add mock objects for 3rd party payment gateway\n- Test edge cases for payment failures and retries", "priority": "medium", "labels": ["planned", "testing"], "story_points": 3, "estimated_hours": 6.0, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-48"},
+            {"title": "Implement email template system", "description": "## Tasks\n- Build reusable email template system with variables\n- Integrate with SendGrid API for template management\n- Support dynamic content injection for user personalized emails", "priority": "medium", "labels": ["planned", "feature"], "story_points": 3, "estimated_hours": 7.5, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-49"},
+            {"title": "Add Datadog APM integration", "description": "## Tasks\n- Integrate Datadog APM for production monitoring\n- Set up tracing for all microservices\n- Configure custom dashboards for performance metrics", "priority": "medium", "labels": ["planned", "observability"], "story_points": 2, "estimated_hours": 4.0, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-50"},
+            {"title": "Migrate to Python 3.12", "description": "## Tasks\n- Upgrade all services to Python 3.12\n- Update Dockerfile and environment specifications\n- Fix any deprecation warnings from 3rd party libraries", "priority": "low", "labels": ["planned", "maintenance"], "story_points": 2, "estimated_hours": 5.0, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-51"},
+            {"title": "Document API versioning strategy", "description": "## Tasks\n- Write technical documentation for API versioning\n- Define deprecation policy for old endpoints\n- Publish documentation on the internal developer portal", "priority": "low", "labels": ["planned", "documentation"], "story_points": 1, "estimated_hours": 2.0, "suggested_assignee_slack_id": "U_MAYA_PATEL", "suggested_assignee_name": "Maya Patel", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-52"},
+            {"title": "Implement feature flags service", "description": "## Tasks\n- Build internal feature flags for gradual rollouts\n- Connect flags to Unleash or custom management UI\n- Add support for percentage-based rollouts", "priority": "high", "labels": ["planned", "infrastructure"], "story_points": 3, "estimated_hours": 9.0, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-53"},
+            {"title": "Add GraphQL subscriptions support", "description": "## Tasks\n- Implement real-time GraphQL subscriptions\n- Set up Redis as a message broker for pub/sub\n- Update frontend to handle live data updates via WebSockets", "priority": "medium", "labels": ["planned", "feature"], "story_points": 3, "estimated_hours": 11.0, "suggested_assignee_slack_id": "U_SAM_WILSON", "suggested_assignee_name": "Sam Wilson", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-54"},
+            {"title": "Implement retry logic for external APIs", "description": "## Tasks\n- Add exponential backoff retry for third-party API calls\n- Implement circuit breaker pattern for external dependencies\n- Log all retry attempts and persistent failures for alerting", "priority": "medium", "labels": ["planned", "reliability"], "story_points": 2, "estimated_hours": 5.5, "suggested_assignee_slack_id": "U_JORDAN_LEE", "suggested_assignee_name": "Jordan Lee", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-55"},
+            {"title": "Add health check endpoints to all services", "description": "## Tasks\n- Standardize health check endpoints across services\n- Return 200 OK only if all critical dependencies (DB, Redis) are healthy\n- Integrate with Kubernetes liveness and readiness probes", "priority": "low", "labels": ["planned", "infrastructure"], "story_points": 2, "estimated_hours": 3.5, "suggested_assignee_slack_id": "U_ALEX_CHEN", "suggested_assignee_name": "Alex Chen", "origin_type": "planned", "trigger_mode": "automatic", "status": "created", "jira_ticket_id": "ENG-56"},
         ]
 
         # Seed Sprint 14 threads → tasks → tickets
@@ -602,6 +613,20 @@ async def seed_historical_tasks_and_tickets():
         total_planned = len(sprint_14_planned_tickets)
         print(f"  Seeded {len(thread_objs)} threads, {len(task_objs)} tasks")
         print(f"  Seeded {total_adhoc + total_planned} tickets ({total_adhoc} adhoc, {total_planned} planned)")
+
+        # ── Setup manual relationship for demo visibility ─────────────────────────
+        # Link ENG-42 (discount_code) as a child of ENG-34 (custom field support)
+        eng_34 = await session.execute(select(Ticket).where(Ticket.jira_ticket_id == "ENG-34"))
+        eng_42 = await session.execute(select(Ticket).where(Ticket.jira_ticket_id == "ENG-42"))
+        
+        t34 = eng_34.scalar_one_or_none()
+        t42 = eng_42.scalar_one_or_none()
+        
+        if t34 and t42:
+            t42.related_ticket_id = t34.id
+            t42.relation_type = "similar_to"
+            await session.commit()
+            print(f"  Manually linked {t42.jira_ticket_id} to {t34.jira_ticket_id} for demo visibility")
 
         return ticket_objs, task_objs
 
