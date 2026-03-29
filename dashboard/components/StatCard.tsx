@@ -6,31 +6,28 @@ interface StatCardProps {
   value: string | number
   label: string
   sublabel?: string
-  borderColor?: string
-  valueColor?: string
+  accentColor?: string
 }
 
 export function StatCard({
   value,
   label,
   sublabel,
-  borderColor = '#E2534A',
-  valueColor,
+  accentColor = '#9f403d',
 }: StatCardProps) {
   return (
-    <div
-      className="bg-white rounded-lg p-5 shadow-sm"
-      style={{ borderLeft: `3px solid ${borderColor}` }}
-    >
-      <div
-        className={cn('text-3xl font-bold mb-1', valueColor)}
-        style={valueColor ? { color: valueColor } : undefined}
-      >
+    <div className="bg-white rounded-3xl p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-1.5 h-1.5 rounded-full" style={{ background: accentColor }} />
+        <p className="text-xs font-semibold text-[#757d6b] uppercase tracking-widest" style={{ fontFamily: 'var(--font-manrope)' }}>
+          {label}
+        </p>
+      </div>
+      <div className="text-4xl font-bold text-[#2d3526] tracking-tight" style={{ fontFamily: 'var(--font-manrope)', letterSpacing: '-0.02em' }}>
         {value}
       </div>
-      <div className="text-sm text-gray-500 mb-1">{label}</div>
       {sublabel && (
-        <div className="text-xs text-gray-400">{sublabel}</div>
+        <p className="text-xs text-[#757d6b] mt-2">{sublabel}</p>
       )}
     </div>
   )
@@ -38,10 +35,10 @@ export function StatCard({
 
 export function StatCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg p-5 shadow-sm border-l-[3px] border-gray-200">
-      <div className="h-9 w-24 bg-gray-200 rounded animate-pulse mb-2" />
-      <div className="h-4 w-32 bg-gray-100 rounded animate-pulse mb-1" />
-      <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+    <div className="bg-white rounded-3xl p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+      <div className="h-3 w-28 bg-[#ebf0e0] rounded-full animate-pulse mb-4" />
+      <div className="h-10 w-20 bg-[#ebf0e0] rounded-xl animate-pulse mb-3" />
+      <div className="h-3 w-24 bg-[#f2f5e8] rounded-full animate-pulse" />
     </div>
   )
 }

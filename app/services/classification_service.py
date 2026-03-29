@@ -272,15 +272,19 @@ async def get_engineer_workload_breakdown(current_sprint_id: str | None = None, 
 
         # Get expertise map for top domains
         expertise_result = await session.execute(
-            select(ExpertiseMap).order_by(ExpertiseMap.score.desc())
+            select(
+                ExpertiseMap.engineer_name,
+                ExpertiseMap.service_or_domain,
+                ExpertiseMap.score,
+            ).order_by(ExpertiseMap.score.desc())
         )
-        expertise_rows = expertise_result.scalars().all()
+        expertise_rows = expertise_result.all()
 
         # Map engineer -> top domain
         engineer_domains = {}
-        for exp in expertise_rows:
-            if exp.engineer_name not in engineer_domains:
-                engineer_domains[exp.engineer_name] = exp.service_or_domain
+        for engineer_name, service_or_domain, _score in expertise_rows:
+            if engineer_name not in engineer_domains:
+                engineer_domains[engineer_name] = service_or_domain
 
         # Get last sprint adhoc points for trend comparison
         last_sprint_adhoc = {}

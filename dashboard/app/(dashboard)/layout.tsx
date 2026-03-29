@@ -1,10 +1,10 @@
-import type { Metadata } from "next"
-import { Space_Grotesk, Inter } from "next/font/google"
-import "../globals.css"
-import { Sidebar } from "@/components/Sidebar"
+import type { Metadata } from "next";
+import { Manrope, Inter } from "next/font/google";
+import "../globals.css";
+import { Sidebar } from "@/components/Sidebar";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
 })
 
@@ -24,11 +24,8 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <html
-      lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} dark`}
-    >
-      <body className="min-h-full bg-[#060e20] text-[#dee5ff]">
+    <html lang="en" className={`${manrope.variable} ${inter.variable}`}>
+      <body className="min-h-full bg-[#f9faf0] text-[#2d3526]">
         <Sidebar />
         <div className="ml-64">{children}</div>
       </body>

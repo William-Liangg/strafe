@@ -1,6 +1,6 @@
 'use client'
 
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, Users } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Users } from 'lucide-react'
 import { useEngineers } from '@/lib/hooks'
 
 function getInitials(name: string) {
@@ -11,7 +11,7 @@ function PageSkeleton() {
   return (
     <div className="p-8 space-y-6">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="animate-pulse bg-[#141f38] border-2 border-black h-32" />
+        <div key={i} className="animate-pulse bg-[#ebf0e0] rounded-3xl h-32" />
       ))}
     </div>
   )
@@ -20,13 +20,13 @@ function PageSkeleton() {
 function PageError({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="p-8">
-      <div className="bg-[#a70138] border-2 border-black p-4 flex items-center gap-3">
-        <AlertTriangle className="h-5 w-5 text-[#ffb2b9] shrink-0" />
-        <p className="flex-1 text-[#ffb2b9] font-medium">{message}</p>
+      <div className="bg-white rounded-3xl p-6 flex items-center gap-4 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+        <div className="w-1.5 h-1.5 rounded-full bg-[#9f403d] shrink-0" />
+        <p className="flex-1 text-[#9f403d] text-sm font-medium">{message}</p>
         <button
           onClick={onRetry}
-          className="bg-[#ff6e84] text-[#490013] px-4 py-2 border-2 border-black font-black shadow-[2px_2px_0px_0px_#000]"
-          style={{ fontFamily: 'var(--font-space-grotesk)' }}
+          className="px-4 py-2 text-white text-sm font-semibold rounded-2xl transition-opacity hover:opacity-90"
+          style={{ fontFamily: 'var(--font-manrope)', background: 'linear-gradient(180deg, #5f5e5e 0%, #535252 100%)' }}
         >
           Retry
         </button>
@@ -36,16 +36,16 @@ function PageError({ message, onRetry }: { message: string; onRetry: () => void 
 }
 
 function TrendIcon({ trend }: { trend: 'up' | 'down' | 'flat' }) {
-  if (trend === 'up') return <TrendingUp className="h-4 w-4 text-[#ff6e84]" />
-  if (trend === 'down') return <TrendingDown className="h-4 w-4 text-green-400" />
-  return <Minus className="h-4 w-4 text-[#6d758c]" />
+  if (trend === 'up') return <TrendingUp className="h-3.5 w-3.5 text-[#9f403d]" />
+  if (trend === 'down') return <TrendingDown className="h-3.5 w-3.5 text-[#3a6b4a]" />
+  return <Minus className="h-3.5 w-3.5 text-[#b8c4a8]" />
 }
 
 export default function EngineersPage() {
   const { data, error, mutate } = useEngineers()
 
   if (!data && !error) return <PageSkeleton />
-  if (error) return <PageError message="Failed to load engineer data" onRetry={() => mutate()} />
+  if (error) return <PageError message={error.message || 'Failed to load engineer data'} onRetry={() => mutate()} />
 
   const engineers = data?.engineers ?? []
   const stats = data?.team_stats
@@ -53,25 +53,25 @@ export default function EngineersPage() {
   const maxAdhocPoints = Math.max(...engineers.map((e) => e.adhoc_points), 1)
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#060e20]">
+    <div className="flex flex-col min-h-screen bg-[#f9faf0]">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b-4 border-black bg-slate-900/80 backdrop-blur-md px-8 py-4 shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]">
+      <header className="sticky top-0 z-30 bg-[#f9faf0]/80 backdrop-blur-[20px] px-8 py-4 shadow-[0px_1px_0px_rgba(184,196,168,0.3)]">
         <div className="flex items-center justify-between">
           <div>
             <h1
-              className="text-3xl font-black italic tracking-tighter text-slate-50"
-              style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              className="text-2xl font-bold tracking-tight text-[#2d3526]"
+              style={{ fontFamily: 'var(--font-manrope)', letterSpacing: '-0.02em' }}
             >
               Team Workload
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-[#757d6b] mt-0.5">
               Who is being pulled away from planned work?
             </p>
           </div>
           <button
             onClick={() => mutate()}
-            className="bg-[#bd9dff] text-black px-4 py-2 font-black border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
-            style={{ fontFamily: 'var(--font-space-grotesk)' }}
+            className="px-5 py-2 text-white text-sm font-semibold rounded-2xl transition-opacity hover:opacity-90"
+            style={{ fontFamily: 'var(--font-manrope)', background: 'linear-gradient(180deg, #5f5e5e 0%, #535252 100%)' }}
           >
             Refresh
           </button>
@@ -79,73 +79,58 @@ export default function EngineersPage() {
       </header>
 
       <main className="flex-1 p-8 space-y-8">
-        {/* Team Health Snapshot - 3 big numbers */}
-        <section className="grid grid-cols-3 gap-6">
-          {/* Total adhoc points */}
-          <div
-            className="relative bg-[#0f1930] border-4 border-black p-6 overflow-hidden"
-            style={{ boxShadow: '4px 4px 0px 0px #000' }}
-          >
-            <div className="absolute top-0 left-0 w-[3px] h-full bg-[#bd9dff]" />
+        {/* Team Health Snapshot */}
+        <section className="grid grid-cols-3 gap-5">
+          <div className="bg-white rounded-3xl p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#5f5e5e]" />
+              <p className="text-[10px] font-semibold text-[#757d6b] uppercase tracking-widest" style={{ fontFamily: 'var(--font-manrope)' }}>
+                Total Adhoc Points This Sprint
+              </p>
+            </div>
             <p
-              className="text-[10px] font-black text-[#6d758c] uppercase tracking-widest mb-2 pl-4"
-              style={{ fontFamily: 'var(--font-space-grotesk)' }}
-            >
-              Total Adhoc Points This Sprint
-            </p>
-            <p
-              className="text-5xl font-black text-white pl-4"
-              style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              className="text-5xl font-bold text-[#2d3526]"
+              style={{ fontFamily: 'var(--font-manrope)', letterSpacing: '-0.02em' }}
             >
               {stats?.total_adhoc_points ?? 0}
             </p>
-            <p className="text-xs text-[#6d758c] pl-4 mt-2">
+            <p className="text-xs text-[#757d6b] mt-2">
               Story points absorbed by unplanned work
             </p>
           </div>
 
-          {/* Most impacted */}
-          <div
-            className="relative bg-[#0f1930] border-4 border-black p-6 overflow-hidden"
-            style={{ boxShadow: '4px 4px 0px 0px #000' }}
-          >
-            <div className="absolute top-0 left-0 w-[3px] h-full bg-[#ff6e84]" />
+          <div className="bg-white rounded-3xl p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#9f403d]" />
+              <p className="text-[10px] font-semibold text-[#757d6b] uppercase tracking-widest" style={{ fontFamily: 'var(--font-manrope)' }}>
+                Most Impacted Engineer
+              </p>
+            </div>
             <p
-              className="text-[10px] font-black text-[#6d758c] uppercase tracking-widest mb-2 pl-4"
-              style={{ fontFamily: 'var(--font-space-grotesk)' }}
-            >
-              Most Impacted Engineer
-            </p>
-            <p
-              className="text-3xl font-black text-[#ff6e84] pl-4"
-              style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              className="text-3xl font-bold text-[#9f403d]"
+              style={{ fontFamily: 'var(--font-manrope)', letterSpacing: '-0.01em' }}
             >
               {stats?.most_impacted_name ?? '—'}
             </p>
-            <p className="text-lg text-white pl-4 mt-1 font-bold">
+            <p className="text-sm text-[#2d3526] mt-1 font-medium">
               {stats?.most_impacted_points ?? 0} pts unplanned
             </p>
           </div>
 
-          {/* % with adhoc */}
-          <div
-            className="relative bg-[#0f1930] border-4 border-black p-6 overflow-hidden"
-            style={{ boxShadow: '4px 4px 0px 0px #000' }}
-          >
-            <div className="absolute top-0 left-0 w-[3px] h-full bg-[#d1c4ff]" />
+          <div className="bg-white rounded-3xl p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#b8c4a8]" />
+              <p className="text-[10px] font-semibold text-[#757d6b] uppercase tracking-widest" style={{ fontFamily: 'var(--font-manrope)' }}>
+                Team Adhoc Coverage
+              </p>
+            </div>
             <p
-              className="text-[10px] font-black text-[#6d758c] uppercase tracking-widest mb-2 pl-4"
-              style={{ fontFamily: 'var(--font-space-grotesk)' }}
-            >
-              Team Adhoc Coverage
-            </p>
-            <p
-              className="text-5xl font-black text-white pl-4"
-              style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              className="text-5xl font-bold text-[#2d3526]"
+              style={{ fontFamily: 'var(--font-manrope)', letterSpacing: '-0.02em' }}
             >
               {stats?.pct_carrying_adhoc ?? 0}%
             </p>
-            <p className="text-xs text-[#6d758c] pl-4 mt-2">
+            <p className="text-xs text-[#757d6b] mt-2">
               {stats?.engineers_with_adhoc ?? 0} of {stats?.total_engineers ?? 0} engineers carrying adhoc
             </p>
           </div>
@@ -154,57 +139,53 @@ export default function EngineersPage() {
         {/* Engineer Cards */}
         <section>
           <div className="flex items-center gap-3 mb-6">
-            <Users className="h-6 w-6 text-[#bd9dff]" />
+            <Users className="h-5 w-5 text-[#757d6b]" />
             <h2
-              className="text-2xl font-black uppercase text-white"
-              style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              className="text-lg font-bold text-[#2d3526]"
+              style={{ fontFamily: 'var(--font-manrope)' }}
             >
               Individual Workload
             </h2>
           </div>
 
           {engineers.length === 0 ? (
-            <div className="bg-[#0f1930] border-2 border-black p-8 text-center text-[#6d758c]">
+            <div className="bg-white rounded-3xl p-8 text-center text-[#757d6b] text-sm shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
               No engineer data for current sprint
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-5">
               {engineers.map((eng) => (
                 <div
                   key={eng.engineer_slack_id ?? eng.engineer_name}
-                  className="relative bg-[#0f1930] border-4 border-black p-6"
-                  style={{ boxShadow: '4px 4px 0px 0px #000' }}
+                  className="bg-white rounded-3xl p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]"
                 >
                   {/* Header row */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-4">
+                  <div className="flex items-start justify-between mb-5">
+                    <div className="flex items-center gap-3">
                       <div
-                        className="w-12 h-12 border-2 border-black bg-[#bd9dff] flex items-center justify-center font-black text-[#3c0089] shrink-0"
-                        style={{ fontFamily: 'var(--font-space-grotesk)' }}
+                        className="w-11 h-11 rounded-2xl bg-[#f2f5e8] flex items-center justify-center font-semibold text-[#2d3526] text-sm shrink-0"
+                        style={{ fontFamily: 'var(--font-manrope)' }}
                       >
                         {getInitials(eng.engineer_name)}
                       </div>
                       <div>
                         <h3
-                          className="text-lg font-black text-white"
-                          style={{ fontFamily: 'var(--font-space-grotesk)' }}
+                          className="text-base font-bold text-[#2d3526]"
+                          style={{ fontFamily: 'var(--font-manrope)' }}
                         >
                           {eng.engineer_name}
                         </h3>
                         {eng.top_domain && (
-                          <p className="text-xs text-[#bd9dff] font-medium">
-                            {eng.top_domain}
-                          </p>
+                          <p className="text-xs text-[#757d6b] mt-0.5">{eng.top_domain}</p>
                         )}
                       </div>
                     </div>
 
-                    {/* Trend indicator */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <TrendIcon trend={eng.trend} />
                       <span
-                        className={`text-xs font-bold ${
-                          eng.trend === 'up' ? 'text-[#ff6e84]' : eng.trend === 'down' ? 'text-green-400' : 'text-[#6d758c]'
+                        className={`text-xs font-medium ${
+                          eng.trend === 'up' ? 'text-[#9f403d]' : eng.trend === 'down' ? 'text-[#3a6b4a]' : 'text-[#b8c4a8]'
                         }`}
                       >
                         {eng.trend === 'up' ? 'Rising' : eng.trend === 'down' ? 'Falling' : 'Stable'}
@@ -212,53 +193,58 @@ export default function EngineersPage() {
                     </div>
                   </div>
 
-                  {/* Key metric: Adhoc percentage */}
-                  <div className="mb-4 p-3 bg-black/30 border border-black">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-[#6d758c] uppercase font-bold">Adhoc Load</span>
+                  {/* Adhoc load */}
+                  <div className="mb-5 p-4 bg-[#f9faf0] rounded-2xl">
+                    <div className="flex items-baseline justify-between mb-1">
+                      <span className="text-xs text-[#757d6b] font-medium">Adhoc Load</span>
                       <span
-                        className={`text-2xl font-black ${
-                          eng.adhoc_percentage >= 50 ? 'text-[#ff6e84]' : eng.adhoc_percentage >= 25 ? 'text-[#fbbf24]' : 'text-green-400'
+                        className={`text-2xl font-bold ${
+                          eng.adhoc_percentage >= 50 ? 'text-[#9f403d]' : eng.adhoc_percentage >= 25 ? 'text-[#a07842]' : 'text-[#3a6b4a]'
                         }`}
-                        style={{ fontFamily: 'var(--font-space-grotesk)' }}
+                        style={{ fontFamily: 'var(--font-manrope)', letterSpacing: '-0.01em' }}
                       >
                         {eng.adhoc_percentage}%
                       </span>
                     </div>
-                    <p className="text-xs text-[#6d758c] mt-1">
-                      of their sprint is unplanned work
-                    </p>
+                    <div className="h-1 bg-[#ebf0e0] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          eng.adhoc_percentage >= 50 ? 'bg-[#9f403d]' : eng.adhoc_percentage >= 25 ? 'bg-[#a07842]' : 'bg-[#3a6b4a]'
+                        }`}
+                        style={{ width: `${eng.adhoc_percentage}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-[#757d6b] mt-1.5">of their sprint is unplanned work</p>
                   </div>
 
                   {/* Ticket breakdown */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-[10px] text-[#6d758c] uppercase font-bold mb-1">Adhoc</p>
-                      <p className="text-white font-bold">
+                      <p className="text-[10px] text-[#757d6b] uppercase tracking-widest font-semibold mb-1" style={{ fontFamily: 'var(--font-manrope)' }}>Adhoc</p>
+                      <p className="font-semibold text-[#2d3526]">
                         {eng.adhoc_tickets} tickets
-                        <span className="text-[#bd9dff] ml-2">{eng.adhoc_points} pts</span>
+                        <span className="text-[#5f5e5e] ml-1.5">{eng.adhoc_points} pts</span>
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-[#6d758c] uppercase font-bold mb-1">Planned</p>
-                      <p className="text-white font-bold">
+                      <p className="text-[10px] text-[#757d6b] uppercase tracking-widest font-semibold mb-1" style={{ fontFamily: 'var(--font-manrope)' }}>Planned</p>
+                      <p className="font-semibold text-[#2d3526]">
                         {eng.planned_tickets} tickets
-                        <span className="text-[#6d758c] ml-2">{eng.planned_points} pts</span>
+                        <span className="text-[#757d6b] ml-1.5">{eng.planned_points} pts</span>
                       </p>
                     </div>
                   </div>
 
-                  {/* vs last sprint */}
                   {eng.last_sprint_adhoc_points > 0 && (
-                    <p className="text-xs text-[#6d758c] mt-3 pt-3 border-t border-black/30">
+                    <p className="text-xs text-[#757d6b] mt-4 pt-4 border-t border-[#b8c4a8]/20">
                       Last sprint: {eng.last_sprint_adhoc_points} adhoc pts
                       {eng.adhoc_points > eng.last_sprint_adhoc_points && (
-                        <span className="text-[#ff6e84] ml-1">
+                        <span className="text-[#9f403d] ml-1">
                           (+{eng.adhoc_points - eng.last_sprint_adhoc_points})
                         </span>
                       )}
                       {eng.adhoc_points < eng.last_sprint_adhoc_points && (
-                        <span className="text-green-400 ml-1">
+                        <span className="text-[#3a6b4a] ml-1">
                           ({eng.adhoc_points - eng.last_sprint_adhoc_points})
                         </span>
                       )}
@@ -270,42 +256,36 @@ export default function EngineersPage() {
           )}
         </section>
 
-        {/* Concentration Risk Bar */}
+        {/* Adhoc Load Distribution */}
         {engineers.length > 0 && (
           <section>
             <h2
-              className="text-lg font-black uppercase text-white mb-4"
-              style={{ fontFamily: 'var(--font-space-grotesk)' }}
+              className="text-base font-bold text-[#2d3526] mb-4"
+              style={{ fontFamily: 'var(--font-manrope)' }}
             >
               Adhoc Load Distribution
             </h2>
-            <div
-              className="bg-[#0f1930] border-4 border-black p-6"
-              style={{ boxShadow: '4px 4px 0px 0px #000' }}
-            >
-              <div className="space-y-3">
+            <div className="bg-white rounded-3xl p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+              <div className="space-y-4">
                 {engineers.map((eng, i) => {
                   const widthPct = (eng.adhoc_points / maxAdhocPoints) * 100
                   const isHighest = i === 0 && eng.adhoc_points > 0
 
                   return (
                     <div key={eng.engineer_slack_id ?? eng.engineer_name} className="flex items-center gap-4">
-                      <div className="w-28 shrink-0">
-                        <span className={`text-sm font-bold ${isHighest ? 'text-[#ff6e84]' : 'text-[#a3aac4]'}`}>
+                      <div className="w-24 shrink-0">
+                        <span className={`text-sm font-medium ${isHighest ? 'text-[#9f403d]' : 'text-[#757d6b]'}`}>
                           {eng.engineer_name.split(' ')[0]}
                         </span>
                       </div>
-                      <div className="flex-1 h-6 bg-black/30 border border-black overflow-hidden">
+                      <div className="flex-1 h-1.5 bg-[#f2f5e8] rounded-full overflow-hidden">
                         <div
-                          className={`h-full transition-all ${isHighest ? 'bg-[#ff6e84]' : 'bg-[#bd9dff]'}`}
+                          className={`h-full rounded-full transition-all ${isHighest ? 'bg-[#9f403d]' : 'bg-[#5f5e5e]'}`}
                           style={{ width: `${Math.max(widthPct, 2)}%` }}
                         />
                       </div>
-                      <div className="w-16 text-right">
-                        <span
-                          className={`text-sm font-black ${isHighest ? 'text-[#ff6e84]' : 'text-[#a3aac4]'}`}
-                          style={{ fontFamily: 'var(--font-space-grotesk)' }}
-                        >
+                      <div className="w-14 text-right">
+                        <span className={`text-sm font-semibold ${isHighest ? 'text-[#9f403d]' : 'text-[#757d6b]'}`} style={{ fontFamily: 'var(--font-manrope)' }}>
                           {eng.adhoc_points} pts
                         </span>
                       </div>
@@ -314,7 +294,6 @@ export default function EngineersPage() {
                 })}
               </div>
 
-              {/* Concentration warning */}
               {engineers.length > 1 && engineers[0].adhoc_points > 0 && (
                 (() => {
                   const top = engineers[0].adhoc_points
@@ -323,13 +302,13 @@ export default function EngineersPage() {
 
                   if (ratio >= 2) {
                     return (
-                      <div className="mt-6 p-4 bg-[#ff6e84]/10 border-2 border-[#ff6e84] flex items-start gap-3">
-                        <AlertTriangle className="h-5 w-5 text-[#ff6e84] shrink-0 mt-0.5" />
+                      <div className="mt-6 pt-5 border-t border-[#b8c4a8]/20 flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#9f403d] mt-1 shrink-0" />
                         <div>
-                          <p className="text-sm font-bold text-[#ff6e84]">
+                          <p className="text-sm font-semibold text-[#9f403d]" style={{ fontFamily: 'var(--font-manrope)' }}>
                             Concentration Risk Detected
                           </p>
-                          <p className="text-xs text-[#ffb2b9] mt-1">
+                          <p className="text-xs text-[#757d6b] mt-1">
                             {engineers[0].engineer_name} is carrying {ratio.toFixed(1)}x more adhoc load than the next engineer.
                             This may indicate a knowledge silo or documentation gap.
                           </p>
@@ -345,10 +324,10 @@ export default function EngineersPage() {
         )}
 
         {/* Footer insight */}
-        <div className="text-center py-8 border-t border-black/20">
-          <p className="text-xs text-[#6d758c] max-w-xl mx-auto">
+        <div className="text-center py-8">
+          <p className="text-xs text-[#757d6b] max-w-xl mx-auto leading-relaxed">
             This page identifies adhoc magnets — engineers who consistently absorb unplanned work.
-            That's an organizational insight, not a performance metric.
+            That&apos;s an organizational insight, not a performance metric.
             The right response is documentation, runbooks, or self-serve tooling.
           </p>
         </div>

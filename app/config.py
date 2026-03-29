@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     github_token: str = ""
     github_client_id: str = ""
     github_client_secret: str = ""
+    github_repo_owner: str = ""
+    github_repo_name: str = ""
 
     # Jira
     jira_email: str = ""

@@ -27,6 +27,7 @@ env/
 .venv/
 
 # Environment variables
+alembic/.env
 .env
 .env.local
 .env.*.local
