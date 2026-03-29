@@ -462,8 +462,8 @@ export default function ExpertisePage() {
 
       const connectedIds = new Set<string>([selectedId])
       links.forEach((edge) => {
-        const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id
-        const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id
+        const sourceId = typeof edge.source === 'object' ? (edge.source as SimNode).id : String(edge.source)
+        const targetId = typeof edge.target === 'object' ? (edge.target as SimNode).id : String(edge.target)
 
         if (sourceId === selectedId) connectedIds.add(targetId)
         if (targetId === selectedId) connectedIds.add(sourceId)
