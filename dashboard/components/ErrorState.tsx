@@ -12,15 +12,16 @@ export function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   return (
-    <div className="bg-gray-100 rounded-lg p-6 text-center">
-      <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-      <p className="text-gray-600 mb-3">{message}</p>
+    <div className="bg-white rounded-3xl p-8 text-center shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+      <div className="w-2 h-2 rounded-full bg-[#9f403d] mx-auto mb-4" />
+      <p className="text-[#2d3526] font-medium mb-4 text-sm">{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-md border border-gray-300 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-2xl transition-opacity hover:opacity-90"
+          style={{ background: 'linear-gradient(180deg, #5f5e5e 0%, #535252 100%)' }}
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className="h-3.5 w-3.5" />
           Retry
         </button>
       )}
