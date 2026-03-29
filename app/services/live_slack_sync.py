@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
@@ -20,6 +21,20 @@ from app.services.slack_client import get_slack_client
 from app.services.ticket_generator import get_ticket_generator
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_tagged_user(messages: list[dict]) -> str | None:
+    """Return the first real Slack user ID explicitly tagged in the thread.
+    Ignores broadcast tags like @here, @channel, @everyone.
+    """
+    for msg in messages:
+        text = msg.get("text") or ""
+        for match in re.finditer(r"<@([A-Z0-9]+)>", text):
+            user_id = match.group(1)
+            # Skip if it matches the message author (self-tag)
+            if user_id != msg.get("user"):
+                return user_id
+    return None
 
 
 async def analyze_and_generate_thread(
@@ -121,10 +136,21 @@ async def analyze_and_generate_thread(
         if not thread_url:
             thread_url = f"slack://channel?id={channel_id}&message={thread_ts}"
 
+        # Prefer explicitly tagged user over expertise-based suggestion
+        tagged_slack_id = _extract_tagged_user(messages)
+        tagged_name = None
+        if tagged_slack_id:
+            user_info = slack_client.get_user_info(tagged_slack_id)
+            if user_info:
+                tagged_name = user_info.get("real_name") or user_info.get("name")
+            logger.info(f"[ASSIGN] Thread {thread_ts} has explicit tag: {tagged_slack_id} ({tagged_name})")
+
         ticket_data = await generator.generate_ticket(
             thread_content=thread_content,
             channel_name=channel_name,
             thread_url=thread_url,
+            tagged_slack_id=tagged_slack_id,
+            tagged_name=tagged_name,
         )
 
         story_points = ticket_data["story_points"]

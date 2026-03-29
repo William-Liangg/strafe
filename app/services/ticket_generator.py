@@ -163,6 +163,8 @@ class TicketGenerator:
         thread_content: str,
         channel_name: str,
         thread_url: str,
+        tagged_slack_id: str | None = None,
+        tagged_name: str | None = None,
     ) -> dict:
         """Generate a ticket draft from a Slack thread."""
         expertise_map = await self.get_expertise_map_text()
@@ -204,6 +206,13 @@ class TicketGenerator:
 
         # Validate and sanitize response
         result = self._validate_ticket_data(result)
+
+        # Override Claude's assignee suggestion if a specific user was tagged
+        if tagged_slack_id:
+            result["suggested_assignee_slack_id"] = tagged_slack_id
+            result["suggested_assignee_name"] = tagged_name
+            result["assignee_reason"] = f"Explicitly tagged in the Slack thread"
+
         return result
 
     def _validate_ticket_data(self, data: dict) -> dict:
