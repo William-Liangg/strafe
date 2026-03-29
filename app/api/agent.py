@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import AgentDecision, AgentAction, ChannelConfig, Sprint, SprintState
+from app.utils.schema import table_has_column
 
 router = APIRouter()
 
@@ -59,8 +60,12 @@ async def get_agent_decisions(
     Get agent decision log.
     Returns the most recent decisions ordered by created_at desc.
     """
+    has_agent_is_mock = await table_has_column(db, "agent_decisions", "is_mock")
+
     # Build query
     query = select(AgentDecision).order_by(AgentDecision.created_at.desc())
+    if has_agent_is_mock:
+        query = query.where(AgentDecision.is_mock.is_(False))
 
     # Apply action filter if provided
     if action:
@@ -72,6 +77,8 @@ async def get_agent_decisions(
 
     # Get total count
     count_query = select(func.count(AgentDecision.id))
+    if has_agent_is_mock:
+        count_query = count_query.where(AgentDecision.is_mock.is_(False))
     if action:
         try:
             action_enum = AgentAction(action)
@@ -118,6 +125,9 @@ async def get_agent_status(
     """
     Get real-time agent status snapshot.
     """
+    has_agent_is_mock = await table_has_column(db, "agent_decisions", "is_mock")
+    has_sprint_is_mock = await table_has_column(db, "sprints", "is_mock")
+
     # Get monitored channels count
     channels_result = await db.execute(
         select(func.count(ChannelConfig.channel_id)).where(
@@ -130,19 +140,20 @@ async def get_agent_status(
     today_start = datetime.now(timezone.utc).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
+    decision_filters = [AgentDecision.created_at >= today_start]
+    if has_agent_is_mock:
+        decision_filters.insert(0, AgentDecision.is_mock.is_(False))
 
     # Get decisions today
     decisions_today_result = await db.execute(
-        select(func.count(AgentDecision.id)).where(
-            AgentDecision.created_at >= today_start
-        )
+        select(func.count(AgentDecision.id)).where(*decision_filters)
     )
     decisions_today = decisions_today_result.scalar() or 0
 
     # Get auto_assigned today
     auto_assigned_result = await db.execute(
         select(func.count(AgentDecision.id)).where(
-            AgentDecision.created_at >= today_start,
+            *decision_filters,
             AgentDecision.action == AgentAction.AUTO_ASSIGNED,
         )
     )
@@ -151,7 +162,7 @@ async def get_agent_status(
     # Get flagged_for_review today
     flagged_result = await db.execute(
         select(func.count(AgentDecision.id)).where(
-            AgentDecision.created_at >= today_start,
+            *decision_filters,
             AgentDecision.action == AgentAction.FLAGGED_FOR_REVIEW,
         )
     )
@@ -160,7 +171,7 @@ async def get_agent_status(
     # Get dismissed today
     dismissed_result = await db.execute(
         select(func.count(AgentDecision.id)).where(
-            AgentDecision.created_at >= today_start,
+            *decision_filters,
             AgentDecision.action == AgentAction.DISMISSED,
         )
     )
@@ -169,23 +180,29 @@ async def get_agent_status(
     # Get average confidence today
     avg_confidence_result = await db.execute(
         select(func.avg(AgentDecision.confidence)).where(
-            AgentDecision.created_at >= today_start
+            *decision_filters,
         )
     )
     avg_confidence_today = avg_confidence_result.scalar() or 0.0
 
     # Get last decision
-    last_decision_result = await db.execute(
+    last_decision_query = (
         select(AgentDecision.created_at)
         .order_by(AgentDecision.created_at.desc())
         .limit(1)
     )
+    if has_agent_is_mock:
+        last_decision_query = last_decision_query.where(AgentDecision.is_mock.is_(False))
+
+    last_decision_result = await db.execute(last_decision_query)
     last_decision = last_decision_result.scalar_one_or_none()
 
     # Get active sprint info
-    sprint_result = await db.execute(
-        select(Sprint).where(Sprint.state == SprintState.ACTIVE)
-    )
+    sprint_query = select(Sprint).where(Sprint.state == SprintState.ACTIVE)
+    if has_sprint_is_mock:
+        sprint_query = sprint_query.where(Sprint.is_mock.is_(False))
+
+    sprint_result = await db.execute(sprint_query)
     active_sprint = sprint_result.scalar_one_or_none()
 
     # Determine agent status based on last activity

@@ -1,5 +1,6 @@
 import useSWR, { type SWRConfiguration } from 'swr'
 import {
+  fetchTasks,
   fetchTickets,
   fetchAgentDecisions,
   fetchAgentStatus,
@@ -10,9 +11,11 @@ import {
   fetchExpertiseGraph,
   fetchExpertiseSyncStatus,
   fetchSlackScanStatus,
+  fetchLiveChannels,
   fetchIntegrationStatus,
 } from '@/lib/api'
 import type {
+  DetectedTask,
   TicketListResponse,
   AgentDecisionsResponse,
   AgentStatusResponse,
@@ -24,6 +27,7 @@ import type {
   ExpertiseSyncStatus,
   SlackScanStatus,
   IntegrationStatusResponse,
+  LiveChannel,
 } from '@/lib/types'
 
 const DEFAULT_OPTS: SWRConfiguration = {
@@ -35,9 +39,31 @@ const DEFAULT_OPTS: SWRConfiguration = {
 // Ticket hooks
 // ---------------------------------------------------------------------------
 
-export function useTickets(status?: string, isMock?: boolean) {
+export function useTasks(opts?: {
+  status?: string
+  classification?: string
+  enabled?: boolean
+}) {
+  const enabled = opts?.enabled ?? true
+
+  return useSWR<DetectedTask[]>(
+    enabled ? ['tasks', opts?.status, opts?.classification] : null,
+    () => fetchTasks({ status: opts?.status, classification: opts?.classification }),
+    DEFAULT_OPTS,
+  )
+}
+
+export function useTickets(
+  status?: string,
+  isMock?: boolean,
+  opts?: {
+    enabled?: boolean
+  },
+) {
+  const enabled = opts?.enabled ?? true
+
   return useSWR<TicketListResponse>(
-    ['tickets', status, isMock],
+    enabled ? ['tickets', status, isMock] : null,
     () => fetchTickets(status, isMock),
     DEFAULT_OPTS,
   )
@@ -131,13 +157,43 @@ export function useIntegrationStatus() {
   return useSWR<IntegrationStatusResponse>('integrations', fetchIntegrationStatus, DEFAULT_OPTS)
 }
 
-export function useSlackScanStatus(pollWhileRunning = false) {
+export function useLiveChannels(enabled = true) {
+  return useSWR<LiveChannel[]>(
+    enabled ? 'live-channels' : null,
+    fetchLiveChannels,
+    DEFAULT_OPTS,
+  )
+}
+
+export function useSlackScanStatus(
+  options:
+    | boolean
+    | {
+        enabled?: boolean
+        pollWhileRunning?: boolean
+        pollIntervalMs?: number
+      } = false,
+) {
+  const enabled = typeof options === 'boolean' ? true : options.enabled ?? true
+  const pollWhileRunning = typeof options === 'boolean' ? options : options.pollWhileRunning ?? false
+  const pollIntervalMs = typeof options === 'boolean' ? 2_000 : options.pollIntervalMs ?? 2_000
+
   return useSWR<SlackScanStatus>(
-    'slack-scan-status',
+    enabled ? 'slack-scan-status' : null,
     fetchSlackScanStatus,
     {
       ...DEFAULT_OPTS,
-      refreshInterval: pollWhileRunning ? 2_000 : 0,
+      refreshInterval: (latestData) => {
+        if (!pollWhileRunning) {
+          return 0
+        }
+
+        if (!latestData) {
+          return pollIntervalMs
+        }
+
+        return ['pending', 'running'].includes(latestData.status) ? pollIntervalMs : 0
+      },
     },
   )
 }

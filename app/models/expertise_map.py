@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import String, Integer, Float, DateTime, func
+from sqlalchemy import Boolean, String, Integer, Float, DateTime, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -23,6 +23,8 @@ class ExpertiseMap(Base):
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    is_mock: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text('false'))
+
     # GitHub-derived fields (populated by /expertise/sync)
     github_login: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)

@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool
@@ -27,6 +28,17 @@ async def init_db():
     """Initialize database tables."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        # Older local databases predate the demo/live separation columns.
+        # `create_all()` will not alter existing tables, so repair those schemas
+        # during startup before any ORM query tries to select the missing fields.
+        for statement in (
+            "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS is_mock BOOLEAN NOT NULL DEFAULT FALSE",
+            "ALTER TABLE agent_decisions ADD COLUMN IF NOT EXISTS is_mock BOOLEAN NOT NULL DEFAULT FALSE",
+            "ALTER TABLE sprints ADD COLUMN IF NOT EXISTS is_mock BOOLEAN NOT NULL DEFAULT FALSE",
+            "ALTER TABLE expertise_map ADD COLUMN IF NOT EXISTS is_mock BOOLEAN NOT NULL DEFAULT FALSE",
+        ):
+            await conn.execute(text(statement))
 
 
 async def get_db() -> AsyncSession:

@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models import Ticket, TicketStatus, TicketPriority, DetectedTask
 from app.services.jira_client import get_jira_client, JiraClientError
 from app.services.slack_client import get_slack_client
+from app.utils.schema import table_has_column
 from app.workers.tasks import generate_ticket_task
 
 logger = logging.getLogger(__name__)
@@ -118,10 +119,14 @@ async def list_tickets(
     db: AsyncSession = Depends(get_db),
 ):
     """List all tickets with optional filtering."""
+    has_is_mock = await table_has_column(db, "tickets", "is_mock")
     query = select(Ticket)
 
     if status:
         query = query.where(Ticket.status == status)
+
+    if has_is_mock:
+        query = query.where(Ticket.is_mock.is_(False))
 
     query = query.order_by(Ticket.created_at.desc())
 
@@ -130,6 +135,8 @@ async def list_tickets(
     count_query = select(func.count(Ticket.id))
     if status:
         count_query = count_query.where(Ticket.status == status)
+    if has_is_mock:
+        count_query = count_query.where(Ticket.is_mock.is_(False))
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 

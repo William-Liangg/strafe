@@ -7,6 +7,18 @@ function getInitials(name: string) {
   return name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
 }
 
+function getEngineerKey(
+  eng: {
+    engineer_slack_id: string | null
+    engineer_name: string
+    adhoc_points: number
+    planned_points: number
+  },
+  index: number,
+) {
+  return `${eng.engineer_slack_id ?? 'unknown'}:${eng.engineer_name}:${eng.adhoc_points}:${eng.planned_points}:${index}`
+}
+
 function PageSkeleton() {
   return (
     <div className="p-8 space-y-6">
@@ -154,9 +166,9 @@ export default function EngineersPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-5">
-              {engineers.map((eng) => (
+              {engineers.map((eng, index) => (
                 <div
-                  key={eng.engineer_slack_id ?? eng.engineer_name}
+                  key={getEngineerKey(eng, index)}
                   className="bg-white rounded-3xl p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]"
                 >
                   {/* Header row */}
@@ -272,7 +284,7 @@ export default function EngineersPage() {
                   const isHighest = i === 0 && eng.adhoc_points > 0
 
                   return (
-                    <div key={eng.engineer_slack_id ?? eng.engineer_name} className="flex items-center gap-4">
+                    <div key={getEngineerKey(eng, i)} className="flex items-center gap-4">
                       <div className="w-24 shrink-0">
                         <span className={`text-sm font-medium ${isHighest ? 'text-[#9f403d]' : 'text-[#757d6b]'}`}>
                           {eng.engineer_name.split(' ')[0]}

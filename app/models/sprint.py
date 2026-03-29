@@ -1,6 +1,6 @@
 import uuid
 import enum
-from sqlalchemy import String, Integer, Float, DateTime, func, Enum
+from sqlalchemy import Boolean, String, Integer, Float, DateTime, func, Enum, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -40,6 +40,8 @@ class Sprint(Base):
     top_source_channel: Mapped[str | None] = mapped_column(String, nullable=True)
     total_story_points_adhoc: Mapped[int] = mapped_column(Integer, default=0)
     total_story_points_planned: Mapped[int] = mapped_column(Integer, default=0)
+
+    is_mock: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text('false'))
 
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

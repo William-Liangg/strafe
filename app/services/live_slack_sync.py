@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.database import async_session
 from app.models import (
@@ -65,23 +66,24 @@ async def analyze_and_generate_thread(
             logger.warning(f"No config for channel {channel_id}")
             return None
 
+        await session.execute(
+            pg_insert(SlackThread)
+            .values(
+                thread_ts=thread_ts,
+                channel_id=channel_id,
+                workspace_id=workspace_id,
+                reply_count=max(len(messages) - 1, 0),
+            )
+            .on_conflict_do_nothing(constraint="uq_thread_channel")
+        )
+
         thread_result = await session.execute(
             select(SlackThread).where(
                 SlackThread.thread_ts == thread_ts,
                 SlackThread.channel_id == channel_id,
             )
         )
-        thread = thread_result.scalar_one_or_none()
-
-        if not thread:
-            thread = SlackThread(
-                thread_ts=thread_ts,
-                channel_id=channel_id,
-                workspace_id=workspace_id,
-                reply_count=max(len(messages) - 1, 0),
-            )
-            session.add(thread)
-            await session.flush()
+        thread = thread_result.scalar_one()
 
         if thread.last_analyzed_at is not None:
             logger.info(f"Thread {thread_ts} already analyzed, skipping")

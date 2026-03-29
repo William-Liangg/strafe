@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session
 from app.models import Ticket, Sprint, SprintState
+from app.utils.schema import table_has_column
 
 logger = logging.getLogger(__name__)
 
@@ -25,44 +26,54 @@ async def get_sprint_breakdown(sprint_id: str) -> dict:
 
         # For active sprints, compute live; for closed, use stored metrics
         if sprint.state == SprintState.ACTIVE:
-            adhoc_result = await session.execute(
-                select(
-                    func.count(Ticket.id),
-                    func.coalesce(func.sum(Ticket.story_points), 0)
-                ).where(
-                    Ticket.sprint_id == sprint_uuid,
-                    Ticket.origin_type == "adhoc"
-                )
+            has_ticket_is_mock = await table_has_column(session, "tickets", "is_mock")
+
+            adhoc_query = select(
+                func.count(Ticket.id),
+                func.coalesce(func.sum(Ticket.story_points), 0)
+            ).where(
+                Ticket.sprint_id == sprint_uuid,
+                Ticket.origin_type == "adhoc",
             )
+            if has_ticket_is_mock:
+                adhoc_query = adhoc_query.where(Ticket.is_mock.is_(False))
+
+            adhoc_result = await session.execute(adhoc_query)
             adhoc_count, adhoc_points = adhoc_result.one()
 
-            planned_result = await session.execute(
-                select(
-                    func.count(Ticket.id),
-                    func.coalesce(func.sum(Ticket.story_points), 0)
-                ).where(
-                    Ticket.sprint_id == sprint_uuid,
-                    Ticket.origin_type == "planned"
-                )
+            planned_query = select(
+                func.count(Ticket.id),
+                func.coalesce(func.sum(Ticket.story_points), 0)
+            ).where(
+                Ticket.sprint_id == sprint_uuid,
+                Ticket.origin_type == "planned",
             )
+            if has_ticket_is_mock:
+                planned_query = planned_query.where(Ticket.is_mock.is_(False))
+
+            planned_result = await session.execute(planned_query)
             planned_count, planned_points = planned_result.one()
 
             total = adhoc_count + planned_count
             adhoc_percentage = (adhoc_count / total * 100) if total > 0 else 0.0
 
             # Get top source channel
-            channel_result = await session.execute(
+            channel_query = (
                 select(
                     Ticket.source_channel_name,
                     func.count(Ticket.id).label("count")
                 ).where(
                     Ticket.sprint_id == sprint_uuid,
                     Ticket.origin_type == "adhoc",
-                    Ticket.source_channel_name.isnot(None)
+                    Ticket.source_channel_name.isnot(None),
                 ).group_by(Ticket.source_channel_name)
                 .order_by(desc("count"))
                 .limit(1)
             )
+            if has_ticket_is_mock:
+                channel_query = channel_query.where(Ticket.is_mock.is_(False))
+
+            channel_result = await session.execute(channel_query)
             top_channel_row = channel_result.first()
             top_source_channel = top_channel_row[0] if top_channel_row else None
         else:
@@ -99,17 +110,23 @@ async def get_channel_breakdown(since_days: int = 90) -> list[dict]:
     cutoff = datetime.now(timezone.utc) - timedelta(days=since_days)
 
     async with async_session() as session:
-        result = await session.execute(
+        has_ticket_is_mock = await table_has_column(session, "tickets", "is_mock")
+
+        query = (
             select(
                 Ticket.source_channel_name,
                 func.count(Ticket.id).label("count")
             ).where(
                 Ticket.origin_type == "adhoc",
                 Ticket.source_channel_name.isnot(None),
-                Ticket.created_at >= cutoff
+                Ticket.created_at >= cutoff,
             ).group_by(Ticket.source_channel_name)
             .order_by(desc("count"))
         )
+        if has_ticket_is_mock:
+            query = query.where(Ticket.is_mock.is_(False))
+
+        result = await session.execute(query)
         rows = result.all()
 
         total = sum(r[1] for r in rows)
@@ -126,6 +143,7 @@ async def get_channel_breakdown(since_days: int = 90) -> list[dict]:
 async def get_engineer_adhoc_load(sprint_id: str | None = None) -> list[dict]:
     """Get engineers ranked by adhoc ticket load."""
     async with async_session() as session:
+        has_ticket_is_mock = await table_has_column(session, "tickets", "is_mock")
         query = select(
             Ticket.suggested_assignee_name,
             Ticket.suggested_assignee_slack_id,
@@ -133,8 +151,10 @@ async def get_engineer_adhoc_load(sprint_id: str | None = None) -> list[dict]:
             func.coalesce(func.sum(Ticket.story_points), 0).label("adhoc_points")
         ).where(
             Ticket.origin_type == "adhoc",
-            Ticket.suggested_assignee_name.isnot(None)
+            Ticket.suggested_assignee_name.isnot(None),
         )
+        if has_ticket_is_mock:
+            query = query.where(Ticket.is_mock.is_(False))
 
         if sprint_id:
             query = query.where(Ticket.sprint_id == UUID(sprint_id))
@@ -161,13 +181,19 @@ async def get_engineer_adhoc_load(sprint_id: str | None = None) -> list[dict]:
 async def get_adhoc_trend(num_sprints: int = 6) -> list[dict]:
     """Get adhoc percentage trend across last N sprints (including active)."""
     async with async_session() as session:
+        has_sprint_is_mock = await table_has_column(session, "sprints", "is_mock")
+
         # Include both closed and active sprints for full trend visibility
-        result = await session.execute(
+        query = (
             select(Sprint)
             .where(Sprint.state.in_(["closed", "active"]))
             .order_by(Sprint.start_date.desc())
             .limit(num_sprints)
         )
+        if has_sprint_is_mock:
+            query = query.where(Sprint.is_mock.is_(False))
+
+        result = await session.execute(query)
         sprints = result.scalars().all()
 
         # Reverse to get chronological order
@@ -189,6 +215,7 @@ async def get_adhoc_trend(num_sprints: int = 6) -> list[dict]:
 async def get_top_source_channels(sprint_id: str | None = None, limit: int = 5) -> list[dict]:
     """Get top source channels for adhoc tickets."""
     async with async_session() as session:
+        has_ticket_is_mock = await table_has_column(session, "tickets", "is_mock")
         query = select(
             Ticket.source_channel_name,
             func.count(Ticket.id).label("count"),
@@ -197,6 +224,8 @@ async def get_top_source_channels(sprint_id: str | None = None, limit: int = 5) 
             Ticket.origin_type == "adhoc",
             Ticket.source_channel_name.isnot(None)
         )
+        if has_ticket_is_mock:
+            query = query.where(Ticket.is_mock.is_(False))
 
         if sprint_id:
             query = query.where(Ticket.sprint_id == UUID(sprint_id))
@@ -221,6 +250,9 @@ async def get_engineer_workload_breakdown(current_sprint_id: str | None = None, 
     from app.models import ExpertiseMap
 
     async with async_session() as session:
+        has_ticket_is_mock = await table_has_column(session, "tickets", "is_mock")
+        has_expertise_is_mock = await table_has_column(session, "expertise_map", "is_mock")
+
         # Get all engineers with any tickets in current sprint (both adhoc and planned)
         base_query = select(
             Ticket.suggested_assignee_name,
@@ -229,8 +261,10 @@ async def get_engineer_workload_breakdown(current_sprint_id: str | None = None, 
             func.count(Ticket.id).label("ticket_count"),
             func.coalesce(func.sum(Ticket.story_points), 0).label("total_points")
         ).where(
-            Ticket.suggested_assignee_name.isnot(None)
+            Ticket.suggested_assignee_name.isnot(None),
         )
+        if has_ticket_is_mock:
+            base_query = base_query.where(Ticket.is_mock.is_(False))
 
         if current_sprint_id:
             base_query = base_query.where(Ticket.sprint_id == UUID(current_sprint_id))
@@ -270,14 +304,18 @@ async def get_engineer_workload_breakdown(current_sprint_id: str | None = None, 
                 engineer_data[name]["planned_tickets"] = count
                 engineer_data[name]["planned_points"] = points
 
-        # Get expertise map for top domains
-        expertise_result = await session.execute(
+        # Get expertise map for top domains (live data only)
+        expertise_query = (
             select(
                 ExpertiseMap.engineer_name,
                 ExpertiseMap.service_or_domain,
                 ExpertiseMap.score,
             ).order_by(ExpertiseMap.score.desc())
         )
+        if has_expertise_is_mock:
+            expertise_query = expertise_query.where(ExpertiseMap.is_mock.is_(False))
+
+        expertise_result = await session.execute(expertise_query)
         expertise_rows = expertise_result.all()
 
         # Map engineer -> top domain
@@ -296,9 +334,21 @@ async def get_engineer_workload_breakdown(current_sprint_id: str | None = None, 
                 ).where(
                     Ticket.sprint_id == UUID(last_sprint_id),
                     Ticket.origin_type == "adhoc",
-                    Ticket.suggested_assignee_name.isnot(None)
+                    Ticket.suggested_assignee_name.isnot(None),
                 ).group_by(Ticket.suggested_assignee_name)
             )
+            if has_ticket_is_mock:
+                last_result = await session.execute(
+                    select(
+                        Ticket.suggested_assignee_name,
+                        func.coalesce(func.sum(Ticket.story_points), 0).label("adhoc_points")
+                    ).where(
+                        Ticket.sprint_id == UUID(last_sprint_id),
+                        Ticket.origin_type == "adhoc",
+                        Ticket.suggested_assignee_name.isnot(None),
+                        Ticket.is_mock.is_(False),
+                    ).group_by(Ticket.suggested_assignee_name)
+                )
             for row in last_result.all():
                 last_sprint_adhoc[row[0]] = row[1]
 
@@ -358,19 +408,27 @@ async def get_engineer_workload_breakdown(current_sprint_id: str | None = None, 
 async def get_analytics_summary() -> dict:
     """Get full dashboard summary in a single call."""
     async with async_session() as session:
+        has_sprint_is_mock = await table_has_column(session, "sprints", "is_mock")
+
         # Get active sprint
-        active_sprint_result = await session.execute(
-            select(Sprint).where(Sprint.state == "active").limit(1)
-        )
+        active_sprint_query = select(Sprint).where(Sprint.state == "active").limit(1)
+        if has_sprint_is_mock:
+            active_sprint_query = active_sprint_query.where(Sprint.is_mock.is_(False))
+
+        active_sprint_result = await session.execute(active_sprint_query)
         active_sprint = active_sprint_result.scalar_one_or_none()
 
         # Get last closed sprint for comparison
-        last_sprint_result = await session.execute(
+        last_sprint_query = (
             select(Sprint)
             .where(Sprint.state == "closed")
             .order_by(Sprint.end_date.desc())
             .limit(1)
         )
+        if has_sprint_is_mock:
+            last_sprint_query = last_sprint_query.where(Sprint.is_mock.is_(False))
+
+        last_sprint_result = await session.execute(last_sprint_query)
         last_sprint = last_sprint_result.scalar_one_or_none()
 
         # Current sprint breakdown

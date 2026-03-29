@@ -1,4 +1,5 @@
 import type {
+  DetectedTask,
   TicketListResponse,
   Ticket,
   TicketApproveResponse,
@@ -15,9 +16,16 @@ import type {
   SlackScanTriggerResponse,
   DisconnectResponse,
   IntegrationStatusResponse,
+  LiveChannel,
 } from '@/lib/types'
 
 const API_BASE = '/api/proxy'
+const LIVE_SCAN_QUEUE_KEY = 'strafe:queue-live-scan'
+
+type QueuedLiveScanRequest = {
+  requestedAt: number
+  sinceHours: number
+}
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -34,6 +42,17 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 // ---------------------------------------------------------------------------
 // Tickets
 // ---------------------------------------------------------------------------
+
+export async function fetchTasks(opts?: {
+  status?: string
+  classification?: string
+}): Promise<DetectedTask[]> {
+  const params = new URLSearchParams()
+  if (opts?.status) params.set('status', opts.status)
+  if (opts?.classification) params.set('classification', opts.classification)
+  const qs = params.toString() ? `?${params}` : ''
+  return apiFetch<DetectedTask[]>(`/tasks${qs}`)
+}
 
 export async function fetchTickets(status?: string, isMock?: boolean): Promise<TicketListResponse> {
   const params = new URLSearchParams()
@@ -138,18 +157,50 @@ export async function syncBotChannels(): Promise<{ registered: number; updated: 
   return apiFetch('/live-feed/channels/sync', { method: 'POST' })
 }
 
-export async function fetchLiveChannels(): Promise<{ channel_id: string; channel_name: string; monitoring_active: boolean; min_replies: number; is_real: boolean }[]> {
-  return apiFetch('/live-feed/channels')
+export async function fetchLiveChannels(): Promise<LiveChannel[]> {
+  return apiFetch<LiveChannel[]>('/live-feed/channels')
 }
 
-export async function bootstrapLiveFeed(sinceHours = 24): Promise<{
-  cleared: Record<string, number>
-  scan_id: string
-  task_id: string
-  status: string
-  message: string
-}> {
-  return apiFetch(`/live-feed/bootstrap?since_hours=${sinceHours}&force=true`, { method: 'POST' })
+export async function bootstrapLiveFeed(sinceHours = 24): Promise<SlackScanTriggerResponse> {
+  if (typeof window !== 'undefined') {
+    const payload: QueuedLiveScanRequest = {
+      requestedAt: Date.now(),
+      sinceHours,
+    }
+    window.sessionStorage.setItem(LIVE_SCAN_QUEUE_KEY, JSON.stringify(payload))
+  }
+
+  return triggerSlackScan(sinceHours)
+}
+
+export function consumeQueuedLiveScanRequest(): QueuedLiveScanRequest | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const queued = window.sessionStorage.getItem(LIVE_SCAN_QUEUE_KEY)
+  if (!queued) {
+    return null
+  }
+
+  window.sessionStorage.removeItem(LIVE_SCAN_QUEUE_KEY)
+
+  try {
+    const parsed = JSON.parse(queued) as Partial<QueuedLiveScanRequest>
+    const sinceHours = Number(parsed.sinceHours)
+    const requestedAt = Number(parsed.requestedAt)
+
+    return {
+      requestedAt: Number.isFinite(requestedAt) && requestedAt > 0 ? requestedAt : Date.now(),
+      sinceHours: Number.isFinite(sinceHours) && sinceHours > 0 ? sinceHours : 24,
+    }
+  } catch {
+    const sinceHours = Number(queued)
+    return {
+      requestedAt: Date.now(),
+      sinceHours: Number.isFinite(sinceHours) && sinceHours > 0 ? sinceHours : 24,
+    }
+  }
 }
 
 export async function fetchIntegrationStatus(): Promise<IntegrationStatusResponse> {
