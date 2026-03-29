@@ -1,11 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Bot } from 'lucide-react'
 import { useAgentDecisions, useAgentStatus, useSummary, useTickets } from '@/lib/hooks'
 import type { Ticket, AgentDecision } from '@/lib/types'
 import { approveTicket, rejectTicket } from '@/lib/api'
+
+function LoadingBar({ isLoading }: { isLoading: boolean }) {
+  return (
+    <div className="fixed top-0 left-64 right-0 z-50 h-1 overflow-hidden">
+      <div
+        className={`h-full bg-gradient-to-r from-[#5f5e5e] via-[#3a6b4a] to-[#5f5e5e] transition-all duration-300 ${
+          isLoading ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={{
+          backgroundSize: '200% 100%',
+          animation: isLoading ? 'loading-shimmer 1.5s ease-in-out infinite' : 'none',
+        }}
+      />
+      <style jsx>{`
+        @keyframes loading-shimmer {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -202,6 +228,7 @@ export default function AgentPage() {
 
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const decisions = decisionsData?.decisions ?? []
   const draftTickets = ticketsData?.tickets.filter((t) => t.status === 'draft') ?? []
@@ -232,12 +259,20 @@ export default function AgentPage() {
     }
   }
 
-  const handleRefresh = () => {
-    mutateStatus()
-    mutateDecisions()
-    mutateSummary()
-    mutateTickets()
-  }
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
+
+    // Run all mutations in parallel with a minimum loading time for UX
+    await Promise.all([
+      mutateStatus(),
+      mutateDecisions(),
+      mutateSummary(),
+      mutateTickets(),
+      new Promise((resolve) => setTimeout(resolve, 800)),
+    ])
+
+    setIsRefreshing(false)
+  }, [mutateStatus, mutateDecisions, mutateSummary, mutateTickets])
 
   const completedDecisions = decisions.filter(
     (d) => d.action !== 'flagged_for_review' || !draftTickets.find((t) => t.id === d.ticket_id)
@@ -252,6 +287,7 @@ export default function AgentPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f9faf0]">
+      <LoadingBar isLoading={isRefreshing} />
 
       {/* ── Top nav ── */}
       <header className="sticky top-0 z-40 bg-[#f9faf0]/80 backdrop-blur-[20px] flex justify-between items-center px-8 py-4 shadow-[0px_1px_0px_rgba(184,196,168,0.3)]">
@@ -275,10 +311,11 @@ export default function AgentPage() {
           )}
           <button
             onClick={handleRefresh}
-            className="px-5 py-2 text-white text-sm font-semibold rounded-2xl transition-opacity hover:opacity-90"
+            disabled={isRefreshing}
+            className="px-5 py-2 text-white text-sm font-semibold rounded-2xl transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ fontFamily: 'var(--font-manrope)', background: 'linear-gradient(180deg, #5f5e5e 0%, #535252 100%)' }}
           >
-            Refresh Feed
+            {isRefreshing ? 'Refreshing...' : 'Refresh Feed'}
           </button>
         </div>
       </header>
