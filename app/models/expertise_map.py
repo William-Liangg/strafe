@@ -26,3 +26,5 @@ class ExpertiseMap(Base):
     # GitHub-derived fields (populated by /expertise/sync)
     github_login: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Jira account ID for assignee mapping
+    jira_account_id: Mapped[str | None] = mapped_column(String, nullable=True)

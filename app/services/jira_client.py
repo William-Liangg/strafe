@@ -94,6 +94,7 @@ class JiraClient:
         priority: str,
         labels: list[str],
         story_points: int,
+        assignee_jira_id: str | None = None,
     ) -> dict:
         """Create a new Jira ticket."""
         # Map priority to Jira priority names
@@ -123,6 +124,7 @@ class JiraClient:
                 "issuetype": {"name": "Task"},
                 "priority": {"name": jira_priority},
                 "labels": labels,
+                **({"assignee": {"accountId": assignee_jira_id}} if assignee_jira_id else {}),
             }
         }
 

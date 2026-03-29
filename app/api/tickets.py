@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Ticket, TicketStatus, TicketPriority, DetectedTask
+from app.models import Ticket, TicketStatus, TicketPriority, DetectedTask, ExpertiseMap
 from app.services.jira_client import get_jira_client, JiraClientError
 from app.services.slack_client import get_slack_client
 from app.workers.tasks import generate_ticket_task
@@ -241,6 +241,17 @@ async def approve_ticket(
 
     # Create Jira ticket
     jira_client = get_jira_client()
+
+    # Look up Jira account ID for the suggested assignee
+    jira_account_id = None
+    if ticket.suggested_assignee_slack_id:
+        result = await db.execute(
+            select(ExpertiseMap.jira_account_id)
+            .where(ExpertiseMap.engineer_slack_id == ticket.suggested_assignee_slack_id)
+            .limit(1)
+        )
+        jira_account_id = result.scalar_one_or_none()
+
     try:
         jira_result = await jira_client.create_ticket(
             title=ticket.title,
@@ -248,6 +259,7 @@ async def approve_ticket(
             priority=ticket.priority.value if hasattr(ticket.priority, 'value') else ticket.priority,
             labels=ticket.labels or [],
             story_points=ticket.story_points,
+            assignee_jira_id=jira_account_id,
         )
 
         ticket.jira_ticket_id = jira_result["key"]
