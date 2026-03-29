@@ -21,3 +21,7 @@ celery_app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
 )
+
+# Import task modules eagerly so the worker registry is populated
+# even when the app is loaded via different Celery entrypoints.
+import app.workers.tasks  # noqa: E402,F401

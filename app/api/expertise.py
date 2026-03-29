@@ -7,10 +7,11 @@ Expertise Map API
 import logging
 from collections import defaultdict
 from datetime import datetime
+from typing import Any, Mapping
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import literal, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -73,15 +74,29 @@ class SyncTriggerResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _build_graph(rows: list[ExpertiseMap]) -> ExpertiseGraphResponse:
+async def _get_table_columns(db: AsyncSession, table_name: str) -> set[str]:
+    result = await db.execute(
+        text(
+            """
+            select column_name
+            from information_schema.columns
+            where table_name = :table_name
+            """
+        ),
+        {"table_name": table_name},
+    )
+    return {row[0] for row in result.all()}
+
+
+def _build_graph(rows: list[Mapping[str, Any]]) -> ExpertiseGraphResponse:
     """
     Build nodes and edges from raw expertise_map rows.
     Groups by github_login (falls back to engineer_name for seed data).
     """
     # Group entries by contributor identifier
-    contributor_map: dict[str, list[ExpertiseMap]] = defaultdict(list)
+    contributor_map: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
     for row in rows:
-        key = row.github_login or row.engineer_name
+        key = row["github_login"] or row["engineer_name"]
         contributor_map[key].append(row)
 
     # Build nodes
@@ -90,11 +105,17 @@ def _build_graph(rows: list[ExpertiseMap]) -> ExpertiseGraphResponse:
 
     for key, entries in contributor_map.items():
         # Use latest avatar_url if available
-        avatar = next((e.avatar_url for e in entries if e.avatar_url), None)
-        github_login = next((e.github_login for e in entries if e.github_login), key)
+        avatar = next((entry["avatar_url"] for entry in entries if entry["avatar_url"]), None)
+        github_login = next((entry["github_login"] for entry in entries if entry["github_login"]), key)
 
         expertise = sorted(
-            [ExpertiseDomainItem(domain=e.service_or_domain, score=e.score) for e in entries],
+            [
+                ExpertiseDomainItem(
+                    domain=entry["service_or_domain"],
+                    score=entry["score"],
+                )
+                for entry in entries
+            ],
             key=lambda x: x.score,
             reverse=True,
         )
@@ -113,9 +134,9 @@ def _build_graph(rows: list[ExpertiseMap]) -> ExpertiseGraphResponse:
 
         # Build domain->score map for edge computation
         node_domains[key] = {
-            e.service_or_domain: e.score
-            for e in entries
-            if e.score >= EDGE_SCORE_THRESHOLD
+            entry["service_or_domain"]: entry["score"]
+            for entry in entries
+            if entry["score"] >= EDGE_SCORE_THRESHOLD
         }
 
     # Build edges between contributors who share domains
@@ -149,6 +170,11 @@ def _build_graph(rows: list[ExpertiseMap]) -> ExpertiseGraphResponse:
     return ExpertiseGraphResponse(nodes=nodes, edges=edges)
 
 
+def _prefer_github_rows(rows: list[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    github_rows = [row for row in rows if row["github_login"]]
+    return github_rows if github_rows else rows
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -159,10 +185,28 @@ async def get_expertise_graph(db: AsyncSession = Depends(get_db)):
     """
     Returns the full expertise graph: nodes (contributors) + edges (shared domains).
     """
+    columns = await _get_table_columns(db, "expertise_map")
+    has_github_login = "github_login" in columns
+    has_avatar_url = "avatar_url" in columns
+
     result = await db.execute(
-        select(ExpertiseMap).where(ExpertiseMap.github_login.isnot(None))
+        select(
+            ExpertiseMap.engineer_name.label("engineer_name"),
+            ExpertiseMap.service_or_domain.label("service_or_domain"),
+            ExpertiseMap.score.label("score"),
+            (
+                ExpertiseMap.github_login
+                if has_github_login
+                else literal(None)
+            ).label("github_login"),
+            (
+                ExpertiseMap.avatar_url
+                if has_avatar_url
+                else literal(None)
+            ).label("avatar_url"),
+        )
     )
-    rows = result.scalars().all()
+    rows = _prefer_github_rows(result.mappings().all())
     return _build_graph(rows)
 
 
@@ -172,6 +216,21 @@ async def trigger_sync(db: AsyncSession = Depends(get_db)):
     Trigger a full GitHub re-analysis as a Celery background task.
     Returns immediately with task_id; poll /expertise/sync/status for progress.
     """
+    columns = await _get_table_columns(db, "expertise_map")
+    missing_columns = [
+        column_name
+        for column_name in ("github_login", "avatar_url")
+        if column_name not in columns
+    ]
+    if missing_columns:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "GitHub expertise sync requires the latest database migration. "
+                f"Missing expertise_map columns: {', '.join(missing_columns)}."
+            ),
+        )
+
     from app.workers.tasks import github_sync_task
 
     # Dispatch the Celery task

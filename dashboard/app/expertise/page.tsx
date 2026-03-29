@@ -1,15 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
-import { GitBranch, RefreshCw, Circle } from 'lucide-react'
-import { useExpertiseGraph, useExpertiseSyncStatus } from '@/lib/hooks'
+import { Circle, GitBranch, RefreshCw, Users } from 'lucide-react'
 import { triggerExpertiseSync } from '@/lib/api'
-import type { ExpertiseNode, ExpertiseEdge, ExpertiseDomain } from '@/lib/types'
-
-// ---------------------------------------------------------------------------
-// D3 simulation node/link types
-// ---------------------------------------------------------------------------
+import { useExpertiseGraph, useExpertiseSyncStatus } from '@/lib/hooks'
+import type { ExpertiseNode } from '@/lib/types'
 
 interface SimNode extends d3.SimulationNodeDatum, ExpertiseNode {
   radius: number
@@ -21,16 +17,44 @@ interface SimLink extends d3.SimulationLinkDatum<SimNode> {
   weight: number
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+interface TooltipState {
+  x: number
+  y: number
+  node: ExpertiseNode
+}
 
-const COLOR_SCALE = d3.scaleOrdinal(d3.schemeTableau10)
+const GRAPH_COLORS = [
+  '#5f5e5e',
+  '#3a6b4a',
+  '#a07842',
+  '#9f403d',
+  '#7b8b62',
+  '#6c7a89',
+  '#8b7355',
+  '#6b7b57',
+]
+
+const COLOR_SCALE = d3.scaleOrdinal(GRAPH_COLORS)
+
+function contributorInitials(name: string) {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
 
 function domainScoreColor(score: number): string {
-  if (score >= 0.8) return '#4ade80'   // green
-  if (score >= 0.5) return '#facc15'   // yellow
-  return '#94a3b8'                      // slate
+  if (score >= 0.8) return '#3a6b4a'
+  if (score >= 0.5) return '#a07842'
+  return '#757d6b'
+}
+
+function domainScoreBackground(score: number): string {
+  if (score >= 0.8) return '#e6efe2'
+  if (score >= 0.5) return '#f4ede1'
+  return '#eef1e7'
 }
 
 function formatDate(iso: string | null): string {
@@ -38,41 +62,73 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
   })
 }
 
-// ---------------------------------------------------------------------------
-// Tooltip component
-// ---------------------------------------------------------------------------
-
-interface TooltipState {
-  x: number
-  y: number
-  node: ExpertiseNode
+function syncStatusMeta(status: string) {
+  switch (status) {
+    case 'success':
+      return { color: '#3a6b4a', bg: '#e6efe2', label: 'Synced' }
+    case 'running':
+      return { color: '#a07842', bg: '#f4ede1', label: 'Syncing' }
+    case 'failed':
+      return { color: '#9f403d', bg: '#f5e7e5', label: 'Needs Attention' }
+    default:
+      return { color: '#757d6b', bg: '#eef1e7', label: 'Not Synced' }
+  }
 }
 
 function Tooltip({ tip }: { tip: TooltipState }) {
   return (
     <div
-      className="pointer-events-none fixed z-50 border-2 border-black bg-slate-800 p-3 shadow-[4px_4px_0_0_rgba(0,0,0,1)] text-sm max-w-xs"
-      style={{ left: tip.x + 14, top: tip.y - 10 }}
+      className="pointer-events-none fixed z-50 max-w-xs rounded-2xl bg-white p-4 shadow-[0px_12px_40px_rgba(45,53,38,0.16)]"
+      style={{ left: tip.x + 16, top: tip.y - 12 }}
     >
-      <p className="font-black text-white mb-2">{tip.node.github_login}</p>
-      <p className="text-xs text-slate-400 mb-2">Top: {tip.node.top_domain}</p>
-      <div className="flex flex-col gap-1">
-        {tip.node.expertise.map((d) => (
-          <div key={d.domain} className="flex items-center gap-2">
-            <div
-              className="h-2 rounded-sm"
-              style={{
-                width: `${Math.round(d.score * 64)}px`,
-                backgroundColor: domainScoreColor(d.score),
-              }}
-            />
-            <span className="text-slate-300 text-xs">{d.domain}</span>
-            <span className="text-slate-500 text-xs ml-auto">{Math.round(d.score * 100)}%</span>
+      <div className="mb-3 flex items-center gap-3">
+        {tip.node.avatar_url ? (
+          <img
+            src={tip.node.avatar_url}
+            alt={tip.node.name}
+            className="h-10 w-10 rounded-2xl object-cover"
+          />
+        ) : (
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f2f5e8] text-xs font-semibold text-[#2d3526]"
+            style={{ fontFamily: 'var(--font-manrope)' }}
+          >
+            {contributorInitials(tip.node.name)}
+          </div>
+        )}
+        <div className="min-w-0">
+          <p
+            className="truncate text-sm font-bold text-[#2d3526]"
+            style={{ fontFamily: 'var(--font-manrope)' }}
+          >
+            {tip.node.github_login}
+          </p>
+          <p className="text-xs text-[#757d6b]">Top domain: {tip.node.top_domain}</p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {tip.node.expertise.slice(0, 5).map((domain) => (
+          <div key={domain.domain}>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <span className="truncate text-xs font-medium text-[#2d3526]">{domain.domain}</span>
+              <span className="shrink-0 text-[11px] text-[#757d6b]">
+                {Math.round(domain.score * 100)}%
+              </span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-[#eef1e7]">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.max(Math.round(domain.score * 100), 8)}%`,
+                  backgroundColor: domainScoreColor(domain.score),
+                }}
+              />
+            </div>
           </div>
         ))}
       </div>
@@ -80,9 +136,38 @@ function Tooltip({ tip }: { tip: TooltipState }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Sidebar contributor card
-// ---------------------------------------------------------------------------
+function StatCard({
+  label,
+  value,
+  caption,
+  pipColor,
+}: {
+  label: string
+  value: string
+  caption: string
+  pipColor: string
+}) {
+  return (
+    <div className="rounded-3xl bg-white p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+      <div className="mb-3 flex items-center gap-2">
+        <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: pipColor }} />
+        <p
+          className="text-[10px] font-semibold uppercase tracking-widest text-[#757d6b]"
+          style={{ fontFamily: 'var(--font-manrope)' }}
+        >
+          {label}
+        </p>
+      </div>
+      <p
+        className="text-5xl font-bold tracking-tight text-[#2d3526]"
+        style={{ fontFamily: 'var(--font-manrope)', letterSpacing: '-0.02em' }}
+      >
+        {value}
+      </p>
+      <p className="mt-2 text-xs text-[#757d6b]">{caption}</p>
+    </div>
+  )
+}
 
 function ContributorCard({
   node,
@@ -96,65 +181,78 @@ function ContributorCard({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left border-2 p-3 transition-all ${
+      className={[
+        'w-full rounded-3xl p-4 text-left transition-colors',
         isSelected
-          ? 'border-violet-400 bg-violet-900/30'
-          : 'border-slate-700 bg-slate-800/50 hover:border-slate-500'
-      }`}
+          ? 'bg-[#f2f5e8] shadow-[0px_1px_8px_rgba(45,53,38,0.06)]'
+          : 'bg-[#f9faf0] hover:bg-[#f2f5e8]/70',
+      ].join(' ')}
     >
-      <div className="flex items-center gap-3 mb-2">
+      <div className="mb-3 flex items-center gap-3">
         {node.avatar_url ? (
           <img
             src={node.avatar_url}
             alt={node.name}
-            className="w-8 h-8 rounded-full border-2 border-black"
+            className="h-11 w-11 rounded-2xl object-cover"
           />
         ) : (
-          <div className="w-8 h-8 bg-violet-500 border-2 border-black flex items-center justify-center text-xs font-black text-black">
-            {node.name.slice(0, 2).toUpperCase()}
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-sm font-semibold text-[#2d3526]"
+            style={{ fontFamily: 'var(--font-manrope)' }}
+          >
+            {contributorInitials(node.name)}
           </div>
         )}
-        <div>
-          <p className="text-sm font-bold text-white">{node.github_login}</p>
-          <p className="text-xs text-slate-400">{node.top_domain}</p>
+        <div className="min-w-0">
+          <p
+            className="truncate text-sm font-bold text-[#2d3526]"
+            style={{ fontFamily: 'var(--font-manrope)' }}
+          >
+            {node.github_login}
+          </p>
+          <p className="truncate text-xs text-[#757d6b]">{node.top_domain}</p>
         </div>
       </div>
-      <div className="flex flex-wrap gap-1">
-        {node.expertise.slice(0, 4).map((d) => (
+      <div className="flex flex-wrap gap-1.5">
+        {node.expertise.slice(0, 3).map((domain) => (
           <span
-            key={d.domain}
-            className="text-xs px-2 py-0.5 border border-current font-medium"
-            style={{ color: domainScoreColor(d.score) }}
+            key={domain.domain}
+            className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+            style={{
+              backgroundColor: domainScoreBackground(domain.score),
+              color: domainScoreColor(domain.score),
+            }}
           >
-            {d.domain}
+            {domain.domain}
           </span>
         ))}
-        {node.expertise.length > 4 && (
-          <span className="text-xs text-slate-500">+{node.expertise.length - 4}</span>
+        {node.expertise.length > 3 && (
+          <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-[#757d6b]">
+            +{node.expertise.length - 3}
+          </span>
         )}
       </div>
     </button>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Main page
-// ---------------------------------------------------------------------------
-
 export default function ExpertisePage() {
-  const { data: graph, mutate: refreshGraph } = useExpertiseGraph()
+  const { data: graph, error: graphError, mutate: refreshGraph } = useExpertiseGraph()
   const [syncing, setSyncing] = useState(false)
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
 
-  // Poll sync status while syncing
-  const { data: syncStatus, mutate: refreshStatus } = useExpertiseSyncStatus(syncing)
+  const { data: syncStatus, error: syncError, mutate: refreshStatus } = useExpertiseSyncStatus(syncing)
 
-  // Stop polling once sync is no longer running
   useEffect(() => {
     if (syncStatus && syncStatus.status !== 'running' && syncing) {
-      setSyncing(false)
-      refreshGraph()
+      const timeoutId = window.setTimeout(() => {
+        setSyncing(false)
+      }, 0)
+      void refreshGraph()
+      return () => {
+        window.clearTimeout(timeoutId)
+      }
     }
   }, [syncStatus, syncing, refreshGraph])
 
@@ -162,108 +260,124 @@ export default function ExpertisePage() {
     setSyncing(true)
     try {
       await triggerExpertiseSync()
-      refreshStatus()
-    } catch (err) {
-      console.error('Sync failed to trigger:', err)
+      void refreshStatus()
+    } catch (error) {
+      console.error('Sync failed to trigger:', error)
       setSyncing(false)
     }
   }, [refreshStatus])
-
-  // ---------------------------------------------------------------------------
-  // D3 graph
-  // ---------------------------------------------------------------------------
 
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const nodes = useMemo<SimNode[]>(
     () =>
-      (graph?.nodes ?? []).map((n, i) => ({
-        ...n,
-        radius: 18 + n.expertise.length * 3,
-        color: COLOR_SCALE(String(i)),
+      (graph?.nodes ?? []).map((node, index) => ({
+        ...node,
+        radius: 18 + node.expertise.length * 3,
+        color: COLOR_SCALE(String(index)),
       })),
     [graph],
   )
 
   const links = useMemo<SimLink[]>(
     () =>
-      (graph?.edges ?? []).map((e) => ({
-        source: e.source,
-        target: e.target,
-        shared_domains: e.shared_domains,
-        weight: e.weight,
+      (graph?.edges ?? []).map((edge) => ({
+        source: edge.source,
+        target: edge.target,
+        shared_domains: edge.shared_domains,
+        weight: edge.weight,
       })),
     [graph],
+  )
+
+  const contributorCount = graph?.nodes.length ?? 0
+  const connectionCount = graph?.edges.length ?? 0
+  const domainCount = useMemo(
+    () =>
+      new Set((graph?.nodes ?? []).flatMap((node) => node.expertise.map((domain) => domain.domain))).size,
+    [graph],
+  )
+
+  const sortedNodes = useMemo(
+    () =>
+      [...(graph?.nodes ?? [])].sort((left, right) => {
+        const leftScore = left.expertise[0]?.score ?? 0
+        const rightScore = right.expertise[0]?.score ?? 0
+        if (rightScore !== leftScore) {
+          return rightScore - leftScore
+        }
+        return left.github_login.localeCompare(right.github_login)
+      }),
+    [graph],
+  )
+
+  const effectiveSelectedNode = useMemo(
+    () =>
+      graph?.nodes.some((node) => node.id === selectedNode)
+        ? selectedNode
+        : null,
+    [graph, selectedNode],
+  )
+
+  const selectedContributor = useMemo(
+    () => graph?.nodes.find((node) => node.id === effectiveSelectedNode) ?? null,
+    [graph, effectiveSelectedNode],
   )
 
   useEffect(() => {
     const svg = svgRef.current
     const container = containerRef.current
-    if (!svg || !container || nodes.length === 0) return
+
+    if (!svg) {
+      return
+    }
+
+    d3.select(svg).selectAll('*').remove()
+
+    if (!container || nodes.length === 0) {
+      return
+    }
 
     const width = container.clientWidth
     const height = container.clientHeight
 
-    // Clear previous render
-    d3.select(svg).selectAll('*').remove()
+    d3.select(svg).attr('width', width).attr('height', height)
 
-    d3.select(svg)
-      .attr('width', width)
-      .attr('height', height)
-
-    // Root group (zoom/pan target)
     const root = d3.select(svg).append('g').attr('class', 'root')
 
-    // Zoom behavior
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.2, 4])
+    const zoom = d3
+      .zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.45, 3.5])
       .on('zoom', (event) => {
         root.attr('transform', event.transform)
       })
+
     d3.select(svg).call(zoom)
 
-    // Arrow marker for edges
-    d3.select(svg)
-      .append('defs')
-      .append('marker')
-      .attr('id', 'arrowhead')
-      .attr('viewBox', '-0 -5 10 10')
-      .attr('refX', 13)
-      .attr('refY', 0)
-      .attr('orient', 'auto')
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
-      .append('path')
-      .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
-      .attr('fill', '#475569')
-
-    // Simulation
     const simulation = d3
       .forceSimulation<SimNode>(nodes)
       .force(
         'link',
         d3
           .forceLink<SimNode, SimLink>(links)
-          .id((d) => d.id)
-          .distance((d) => 120 + (1 - d.weight) * 80),
+          .id((node) => node.id)
+          .distance((link) => 125 + (1 - link.weight) * 90),
       )
-      .force('charge', d3.forceManyBody().strength(-300))
+      .force('charge', d3.forceManyBody().strength(-330))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide<SimNode>().radius((d) => d.radius + 12))
+      .force('collision', d3.forceCollide<SimNode>().radius((node) => node.radius + 14))
 
-    // Links
     const link = root
       .append('g')
-      .selectAll<SVGPathElement, SimLink>('path')
+      .selectAll<SVGLineElement, SimLink>('line')
       .data(links)
-      .join('path')
-      .attr('fill', 'none')
-      .attr('stroke', '#334155')
-      .attr('stroke-width', (d) => 1 + d.weight * 4)
-      .attr('stroke-opacity', 0.6)
+      .join('line')
+      .attr('stroke', '#c6d1b8')
+      .attr('stroke-width', (edge) => 1 + edge.weight * 3.5)
+      .attr('stroke-opacity', 0.7)
+      .attr('stroke-linecap', 'round')
 
-    // Node groups
     const node = root
       .append('g')
       .selectAll<SVGGElement, SimNode>('g')
@@ -274,100 +388,107 @@ export default function ExpertisePage() {
       .call(
         d3
           .drag<SVGGElement, SimNode>()
-          .on('start', (event, d) => {
+          .on('start', (event, datum) => {
             if (!event.active) simulation.alphaTarget(0.3).restart()
-            d.fx = d.x
-            d.fy = d.y
+            datum.fx = datum.x
+            datum.fy = datum.y
           })
-          .on('drag', (event, d) => {
-            d.fx = event.x
-            d.fy = event.y
+          .on('drag', (event, datum) => {
+            datum.fx = event.x
+            datum.fy = event.y
           })
-          .on('end', (event, d) => {
+          .on('end', (event, datum) => {
             if (!event.active) simulation.alphaTarget(0)
-            d.fx = null
-            d.fy = null
+            datum.fx = null
+            datum.fy = null
           }),
       )
 
-    // Node circle
     node
       .append('circle')
-      .attr('r', (d) => d.radius)
-      .attr('fill', (d) => d.color)
-      .attr('stroke', '#000')
-      .attr('stroke-width', 2)
+      .attr('r', (datum) => datum.radius)
+      .attr('fill', (datum) => datum.color)
+      .attr('stroke', '#ffffff')
+      .attr('stroke-width', 3)
 
-    // Node label (name)
     node
       .append('text')
-      .text((d) => d.github_login)
+      .text((datum) => datum.github_login)
       .attr('text-anchor', 'middle')
-      .attr('dy', (d) => d.radius + 14)
-      .attr('fill', '#e2e8f0')
+      .attr('dy', (datum) => datum.radius + 15)
+      .attr('fill', '#2d3526')
       .attr('font-size', '11px')
-      .attr('font-weight', 'bold')
-      .attr('font-family', 'Space Grotesk, sans-serif')
+      .attr('font-weight', '700')
 
-    // Node sublabel (top domain)
     node
       .append('text')
-      .text((d) => d.top_domain)
+      .text((datum) => datum.top_domain)
       .attr('text-anchor', 'middle')
-      .attr('dy', (d) => d.radius + 27)
-      .attr('fill', '#64748b')
-      .attr('font-size', '9px')
-      .attr('font-family', 'Space Grotesk, sans-serif')
+      .attr('dy', (datum) => datum.radius + 29)
+      .attr('fill', '#757d6b')
+      .attr('font-size', '10px')
 
-    // Hover tooltip
     node
-      .on('mousemove', (event, d) => {
-        setTooltip({ x: event.clientX, y: event.clientY, node: d })
+      .on('mousemove', (event, datum) => {
+        setTooltip({ x: event.clientX, y: event.clientY, node: datum })
       })
-      .on('mouseleave', () => setTooltip(null))
-      .on('click', (_event, d) => {
-        setSelectedNode((prev) => (prev === d.id ? null : d.id))
+      .on('mouseleave', () => {
+        setTooltip(null)
+      })
+      .on('click', (_event, datum) => {
+        setSelectedNode((current) => (current === datum.id ? null : datum.id))
       })
 
-    // Tick
     simulation.on('tick', () => {
-      link.attr('d', (d) => {
-        const src = d.source as SimNode
-        const tgt = d.target as SimNode
-        const dx = (tgt.x ?? 0) - (src.x ?? 0)
-        const dy = (tgt.y ?? 0) - (src.y ?? 0)
-        const dr = Math.sqrt(dx * dx + dy * dy) * 1.5
-        return `M${src.x},${src.y}A${dr},${dr} 0 0,1 ${tgt.x},${tgt.y}`
-      })
+      link
+        .attr('x1', (datum) => (datum.source as SimNode).x ?? 0)
+        .attr('y1', (datum) => (datum.source as SimNode).y ?? 0)
+        .attr('x2', (datum) => (datum.target as SimNode).x ?? 0)
+        .attr('y2', (datum) => (datum.target as SimNode).y ?? 0)
 
-      node.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`)
+      node.attr('transform', (datum) => `translate(${datum.x ?? 0},${datum.y ?? 0})`)
     })
 
-    // Highlight selected node + its edges
     const updateHighlight = (selectedId: string | null) => {
       if (!selectedId) {
         node.style('opacity', 1)
-        link.attr('stroke-opacity', 0.6)
+        node
+          .selectAll<SVGCircleElement, SimNode>('circle')
+          .attr('stroke', '#ffffff')
+          .attr('stroke-width', 3)
+        link.attr('stroke-opacity', 0.7).attr('stroke', '#c6d1b8')
         return
       }
+
       const connectedIds = new Set<string>([selectedId])
-      links.forEach((l) => {
-        const s = (l.source as SimNode).id
-        const t = (l.target as SimNode).id
-        if (s === selectedId) connectedIds.add(t)
-        if (t === selectedId) connectedIds.add(s)
+      links.forEach((edge) => {
+        const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id
+        const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id
+
+        if (sourceId === selectedId) connectedIds.add(targetId)
+        if (targetId === selectedId) connectedIds.add(sourceId)
       })
-      node.style('opacity', (d) => (connectedIds.has(d.id) ? 1 : 0.2))
-      link.attr('stroke-opacity', (d) => {
-        const s = (d.source as SimNode).id
-        const t = (d.target as SimNode).id
-        return s === selectedId || t === selectedId ? 0.9 : 0.1
-      })
+
+      node.style('opacity', (datum) => (connectedIds.has(datum.id) ? 1 : 0.22))
+      node
+        .selectAll<SVGCircleElement, SimNode>('circle')
+        .attr('stroke', (datum) => (datum.id === selectedId ? '#2d3526' : '#ffffff'))
+        .attr('stroke-width', (datum) => (datum.id === selectedId ? 4 : 3))
+
+      link
+        .attr('stroke-opacity', (datum) => {
+          const sourceId = (datum.source as SimNode).id
+          const targetId = (datum.target as SimNode).id
+          return sourceId === selectedId || targetId === selectedId ? 0.95 : 0.12
+        })
+        .attr('stroke', (datum) => {
+          const sourceId = (datum.source as SimNode).id
+          const targetId = (datum.target as SimNode).id
+          return sourceId === selectedId || targetId === selectedId ? '#5f5e5e' : '#d6dec8'
+        })
     }
 
-    // Re-apply highlight when selectedNode state changes
-    // We use a MutationObserver-free approach: store callback on the svg element
-    ;(svg as unknown as { _setHighlight: (id: string | null) => void })._setHighlight =
+    ;(svg as SVGSVGElement & { _setHighlight?: (id: string | null) => void })._setHighlight =
       updateHighlight
 
     return () => {
@@ -375,110 +496,354 @@ export default function ExpertisePage() {
     }
   }, [nodes, links])
 
-  // Apply highlight whenever selectedNode changes
   useEffect(() => {
-    const svg = svgRef.current
-    if (!svg) return
-    const fn = (svg as unknown as { _setHighlight?: (id: string | null) => void })._setHighlight
-    if (fn) fn(selectedNode)
-  }, [selectedNode])
+    const svg = svgRef.current as (SVGSVGElement & {
+      _setHighlight?: (id: string | null) => void
+    }) | null
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
+    svg?._setHighlight?.(effectiveSelectedNode)
+  }, [effectiveSelectedNode])
 
-  const hasData = (graph?.nodes?.length ?? 0) > 0
+  const hasData = contributorCount > 0
+  const status = syncStatus?.status ?? 'never'
+  const statusMeta = syncStatusMeta(status)
 
   return (
-    <div className="flex h-screen bg-[#060e20] text-[#dee5ff]" style={{ fontFamily: 'var(--font-space-grotesk)' }}>
-      {/* Graph area */}
-      <div ref={containerRef} className="flex-1 relative overflow-hidden">
-        {!hasData && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-500">
-            <GitBranch className="w-16 h-16 opacity-30" />
-            <p className="text-lg font-bold">No expertise data yet</p>
-            <p className="text-sm">Click &ldquo;Sync from GitHub&rdquo; in the sidebar to analyze the repo.</p>
-          </div>
-        )}
-        <svg ref={svgRef} className="w-full h-full" />
-        {tooltip && <Tooltip tip={tooltip} />}
-      </div>
-
-      {/* Sidebar */}
-      <aside className="w-80 shrink-0 border-l-4 border-black bg-slate-900 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="p-4 border-b-2 border-white/10 shrink-0">
-          <div className="flex items-center gap-2 mb-1">
-            <GitBranch className="w-5 h-5 text-violet-400" />
-            <h2 className="text-lg font-black text-white">Expertise Map</h2>
-          </div>
-          <p className="text-xs text-slate-400">
-            {hasData
-              ? `${graph!.nodes.length} contributors · ${graph!.edges.length} connections`
-              : 'No data — sync from GitHub to populate'}
-          </p>
-        </div>
-
-        {/* Sync controls */}
-        <div className="p-4 border-b-2 border-white/10 shrink-0">
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 border-2 border-black bg-violet-600 text-black font-bold hover:bg-violet-500 disabled:opacity-60 disabled:cursor-not-allowed shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-all hover:translate-x-0.5 hover:-translate-y-0.5"
-          >
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing…' : 'Sync from GitHub'}
-          </button>
-
-          {syncStatus && syncStatus.status !== 'never' && (
-            <div className="mt-2 text-xs text-slate-500 space-y-0.5">
-              <div className="flex items-center gap-1">
+    <div className="flex min-h-screen flex-col bg-[#f9faf0]">
+      <header className="sticky top-0 z-30 bg-[#f9faf0]/80 px-8 py-4 shadow-[0px_1px_0px_rgba(184,196,168,0.3)] backdrop-blur-[20px]">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <div className="mb-1 flex items-center gap-3">
+              <h1
+                className="text-2xl font-bold tracking-tight text-[#2d3526]"
+                style={{ fontFamily: 'var(--font-manrope)', letterSpacing: '-0.02em' }}
+              >
+                Expertise Map
+              </h1>
+              <span
+                className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide"
+                style={{ backgroundColor: statusMeta.bg, color: statusMeta.color }}
+              >
                 <Circle
-                  className="w-2 h-2 shrink-0"
-                  fill={
-                    syncStatus.status === 'success'
-                      ? '#4ade80'
-                      : syncStatus.status === 'running'
-                      ? '#facc15'
-                      : '#f87171'
-                  }
+                  className={`h-1.5 w-1.5 ${status === 'running' ? 'animate-pulse' : ''}`}
+                  fill={statusMeta.color}
                   stroke="none"
                 />
-                <span className="capitalize">{syncStatus.status}</span>
-                {syncStatus.status === 'success' && (
-                  <span>
-                    · {syncStatus.contributors_analyzed} contributors · {syncStatus.domains_extracted} domains
-                  </span>
+                {statusMeta.label}
+              </span>
+            </div>
+            <p className="text-sm text-[#757d6b]">
+              Explore who owns what, where knowledge overlaps, and who is strongest in each domain.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <div className="text-sm text-[#757d6b]">
+              Last synced:{' '}
+              <span className="font-medium text-[#2d3526]">{formatDate(syncStatus?.synced_at ?? null)}</span>
+            </div>
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="inline-flex items-center gap-2 rounded-2xl px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{
+                fontFamily: 'var(--font-manrope)',
+                background: 'linear-gradient(180deg, #5f5e5e 0%, #535252 100%)',
+              }}
+            >
+              <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing GitHub…' : 'Sync from GitHub'}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 space-y-8 bg-[#f9faf0] p-8">
+        <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          <StatCard
+            label="Contributors Mapped"
+            value={String(contributorCount)}
+            caption="People currently represented in the expertise graph."
+            pipColor="#5f5e5e"
+          />
+          <StatCard
+            label="Shared Connections"
+            value={String(connectionCount)}
+            caption="Contributor pairs with meaningful overlapping domain strength."
+            pipColor="#3a6b4a"
+          />
+          <StatCard
+            label="Distinct Domains"
+            value={String(domainCount)}
+            caption="Unique services and technical areas found across contributors."
+            pipColor="#a07842"
+          />
+        </section>
+
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.5fr)_24rem]">
+          <div className="rounded-3xl bg-white p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.06)]">
+            <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#5f5e5e]" />
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-widest text-[#757d6b]"
+                    style={{ fontFamily: 'var(--font-manrope)' }}
+                  >
+                    Network View
+                  </p>
+                </div>
+                <h2
+                  className="text-xl font-bold text-[#2d3526]"
+                  style={{ fontFamily: 'var(--font-manrope)' }}
+                >
+                  Team Expertise Graph
+                </h2>
+                <p className="mt-1 max-w-2xl text-sm text-[#757d6b]">
+                  Node size reflects breadth of expertise. Click a contributor to focus their neighborhood, then
+                  inspect the right rail for details.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2 text-[11px] font-medium text-[#757d6b]">
+                <span className="rounded-full bg-[#f2f5e8] px-3 py-1">Drag nodes to reposition</span>
+                <span className="rounded-full bg-[#f2f5e8] px-3 py-1">Scroll to zoom</span>
+                <span className="rounded-full bg-[#f2f5e8] px-3 py-1">Click to isolate</span>
+              </div>
+            </div>
+
+            <div
+              ref={containerRef}
+              className="relative h-[560px] overflow-hidden rounded-[28px] border border-[#b8c4a8]/20 bg-[#f9faf0]"
+            >
+              {!hasData && !graphError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
+                  <GitBranch className="h-12 w-12 text-[#b8c4a8]" />
+                  <div>
+                    <p
+                      className="text-lg font-bold text-[#2d3526]"
+                      style={{ fontFamily: 'var(--font-manrope)' }}
+                    >
+                      No expertise data yet
+                    </p>
+                    <p className="mt-1 text-sm text-[#757d6b]">
+                      Trigger a GitHub sync to build the first contributor graph.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {graphError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
+                  <GitBranch className="h-12 w-12 text-[#9f403d]" />
+                  <div>
+                    <p
+                      className="text-lg font-bold text-[#2d3526]"
+                      style={{ fontFamily: 'var(--font-manrope)' }}
+                    >
+                      Failed to load expertise data
+                    </p>
+                    <p className="mt-1 text-sm text-[#757d6b]">{graphError.message}</p>
+                  </div>
+                  <button
+                    onClick={() => refreshGraph()}
+                    className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#5f5e5e] shadow-[0px_1px_8px_rgba(45,53,38,0.06)] transition-opacity hover:opacity-90"
+                    style={{ fontFamily: 'var(--font-manrope)' }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              <svg ref={svgRef} className="h-full w-full" />
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="rounded-3xl bg-white p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#3a6b4a]" />
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest text-[#757d6b]"
+                  style={{ fontFamily: 'var(--font-manrope)' }}
+                >
+                  Focus Panel
+                </p>
+              </div>
+
+              {selectedContributor ? (
+                <>
+                  <div className="mb-5 flex items-center gap-3">
+                    {selectedContributor.avatar_url ? (
+                      <img
+                        src={selectedContributor.avatar_url}
+                        alt={selectedContributor.name}
+                        className="h-12 w-12 rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f2f5e8] text-sm font-semibold text-[#2d3526]"
+                        style={{ fontFamily: 'var(--font-manrope)' }}
+                      >
+                        {contributorInitials(selectedContributor.name)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <h3
+                        className="truncate text-lg font-bold text-[#2d3526]"
+                        style={{ fontFamily: 'var(--font-manrope)' }}
+                      >
+                        {selectedContributor.github_login}
+                      </h3>
+                      <p className="text-sm text-[#757d6b]">
+                        {selectedContributor.expertise.length} mapped domain
+                        {selectedContributor.expertise.length === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mb-5 rounded-3xl bg-[#f9faf0] p-4">
+                    <p
+                      className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-[#757d6b]"
+                      style={{ fontFamily: 'var(--font-manrope)' }}
+                    >
+                      Strongest Domain
+                    </p>
+                    <p
+                      className="text-2xl font-bold text-[#2d3526]"
+                      style={{ fontFamily: 'var(--font-manrope)', letterSpacing: '-0.01em' }}
+                    >
+                      {selectedContributor.top_domain}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {selectedContributor.expertise.map((domain) => (
+                      <div key={domain.domain}>
+                        <div className="mb-1.5 flex items-center justify-between gap-3">
+                          <span className="truncate text-sm font-medium text-[#2d3526]">
+                            {domain.domain}
+                          </span>
+                          <span className="shrink-0 text-xs text-[#757d6b]">
+                            {Math.round(domain.score * 100)}%
+                          </span>
+                        </div>
+                        <div className="h-2.5 overflow-hidden rounded-full bg-[#eef1e7]">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.max(Math.round(domain.score * 100), 8)}%`,
+                              backgroundColor: domainScoreColor(domain.score),
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-3xl bg-[#f9faf0] p-6 text-center">
+                  <GitBranch className="mx-auto mb-3 h-8 w-8 text-[#b8c4a8]" />
+                  <p
+                    className="text-base font-bold text-[#2d3526]"
+                    style={{ fontFamily: 'var(--font-manrope)' }}
+                  >
+                    Select a contributor
+                  </p>
+                  <p className="mt-1 text-sm text-[#757d6b]">
+                    Click any node in the graph or any card below to inspect their domain profile.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-3xl bg-white p-4 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+              <div className="mb-4 flex items-center justify-between gap-3 px-2">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-[#757d6b]" />
+                  <h3
+                    className="text-base font-bold text-[#2d3526]"
+                    style={{ fontFamily: 'var(--font-manrope)' }}
+                  >
+                    Contributors
+                  </h3>
+                </div>
+                <span className="text-xs font-medium text-[#757d6b]">
+                  {sortedNodes.length} total
+                </span>
+              </div>
+
+              <div className="max-h-[540px] space-y-2 overflow-y-auto pr-1">
+                {hasData ? (
+                  sortedNodes.map((node) => (
+                    <ContributorCard
+                      key={node.id}
+                      node={node}
+                      isSelected={effectiveSelectedNode === node.id}
+                      onClick={() =>
+                        setSelectedNode((current) => (current === node.id ? null : node.id))
+                      }
+                    />
+                  ))
+                ) : (
+                  <div className="rounded-3xl bg-[#f9faf0] p-6 text-center text-sm text-[#757d6b]">
+                    Contributor cards will appear here after the first sync completes.
+                  </div>
                 )}
               </div>
-              <p>Last synced: {formatDate(syncStatus.synced_at)}</p>
-              {syncStatus.error_message && (
-                <p className="text-red-400 truncate" title={syncStatus.error_message}>
+            </div>
+
+            <div className="rounded-3xl bg-white p-6 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#a07842]" />
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest text-[#757d6b]"
+                  style={{ fontFamily: 'var(--font-manrope)' }}
+                >
+                  Sync Status
+                </p>
+              </div>
+
+              <div
+                className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
+                style={{ backgroundColor: statusMeta.bg, color: statusMeta.color }}
+              >
+                <Circle
+                  className={`h-2 w-2 ${status === 'running' ? 'animate-pulse' : ''}`}
+                  fill={statusMeta.color}
+                  stroke="none"
+                />
+                {statusMeta.label}
+              </div>
+
+              <p className="text-sm text-[#757d6b]">
+                Last synced <span className="font-medium text-[#2d3526]">{formatDate(syncStatus?.synced_at ?? null)}</span>
+              </p>
+
+              {syncStatus?.status === 'success' && (
+                <p className="mt-2 text-sm text-[#757d6b]">
+                  {syncStatus.contributors_analyzed} contributors analyzed across{' '}
+                  {syncStatus.domains_extracted} extracted domains.
+                </p>
+              )}
+
+              {syncStatus?.error_message && (
+                <p className="mt-3 rounded-2xl bg-[#f5e7e5] px-4 py-3 text-sm text-[#9f403d]">
                   {syncStatus.error_message}
                 </p>
               )}
-            </div>
-          )}
-        </div>
 
-        {/* Contributor list */}
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-          {hasData ? (
-            graph!.nodes.map((node) => (
-              <ContributorCard
-                key={node.id}
-                node={node}
-                isSelected={selectedNode === node.id}
-                onClick={() => setSelectedNode((prev) => (prev === node.id ? null : node.id))}
-              />
-            ))
-          ) : (
-            <p className="text-xs text-slate-600 text-center mt-8">
-              Contributor cards will appear here after syncing.
-            </p>
-          )}
-        </div>
-      </aside>
+              {syncError && (
+                <p className="mt-3 rounded-2xl bg-[#f5e7e5] px-4 py-3 text-sm text-[#9f403d]">
+                  {syncError.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {tooltip && <Tooltip tip={tooltip} />}
     </div>
   )
 }

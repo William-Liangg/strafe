@@ -1,6 +1,6 @@
 'use client'
 
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, Users } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Users } from 'lucide-react'
 import { useEngineers } from '@/lib/hooks'
 
 function getInitials(name: string) {
@@ -45,7 +45,7 @@ export default function EngineersPage() {
   const { data, error, mutate } = useEngineers()
 
   if (!data && !error) return <PageSkeleton />
-  if (error) return <PageError message="Failed to load engineer data" onRetry={() => mutate()} />
+  if (error) return <PageError message={error.message || 'Failed to load engineer data'} onRetry={() => mutate()} />
 
   const engineers = data?.engineers ?? []
   const stats = data?.team_stats
