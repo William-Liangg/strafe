@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -236,6 +236,9 @@ async def trigger_scan(
     )
 
 
+SCAN_TIMEOUT_MINUTES = 5
+
+
 @router.get("/scan/status", response_model=SlackScanStatusResponse)
 async def scan_status(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -255,6 +258,22 @@ async def scan_status(db: AsyncSession = Depends(get_db)):
             tickets_generated=0,
             error_message=None,
         )
+
+    # Auto-timeout stale scans that have been pending/running too long
+    if scan.status in ("pending", "running") and scan.started_at:
+        started_at = scan.started_at
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=timezone.utc)
+        age = datetime.now(timezone.utc) - started_at
+        if age > timedelta(minutes=SCAN_TIMEOUT_MINUTES):
+            scan.status = "failed"
+            scan.error_message = (
+                f"Scan timed out after {SCAN_TIMEOUT_MINUTES} minutes. "
+                "Celery worker may not be running. Start it with: "
+                "celery -A app.workers.celery_app worker --loglevel=info"
+            )
+            scan.completed_at = datetime.now(timezone.utc)
+            await db.commit()
 
     return SlackScanStatusResponse(
         status=scan.status,

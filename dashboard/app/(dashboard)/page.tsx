@@ -374,13 +374,17 @@ export default function AgentPage() {
       </header>
 
       <main className="flex-1 px-8 py-8 space-y-8">
-        {(bootstrapError || scanStatus?.status === 'running' || scanStatus?.status === 'success') && (
+        {(bootstrapError || scanStatus?.status === 'running' || scanStatus?.status === 'success' || scanStatus?.status === 'failed') && (
           <section className="bg-white rounded-3xl p-5 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
             {bootstrapError ? (
               <p className="text-sm text-[#9f403d]">{bootstrapError}</p>
             ) : scanStatus?.status === 'success' ? (
               <p className="text-sm text-[#3a6b4a]">
                 Slack scan complete. {scanStatus.channels_scanned} channels scanned, {scanStatus.threads_found} threads found, {scanStatus.tickets_generated} tickets generated.
+              </p>
+            ) : scanStatus?.status === 'failed' ? (
+              <p className="text-sm text-[#9f403d]">
+                Scan failed: {scanStatus.error_message || 'Unknown error'}
               </p>
             ) : (
               <p className="text-sm text-[#757d6b]">
