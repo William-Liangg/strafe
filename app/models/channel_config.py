@@ -12,7 +12,7 @@ class ChannelConfig(Base):
     workspace_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     sensitivity: Mapped[float] = mapped_column(Float, default=0.7)
     monitoring_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    min_replies: Mapped[int] = mapped_column(Integer, default=2)
+    min_replies: Mapped[int] = mapped_column(Integer, default=0)
 
     # Auto-approve settings
     auto_approve_threshold: Mapped[float] = mapped_column(Float, default=0.85)

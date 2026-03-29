@@ -1,13 +1,43 @@
+import logging
+import os
+from contextlib import contextmanager
+
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
 from app.config import get_settings
 
+logger = logging.getLogger(__name__)
+
+_PROXY_ENV_VARS = [
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+]
+
+
+@contextmanager
+def _without_proxy_env():
+    removed: dict[str, str] = {}
+    for key in _PROXY_ENV_VARS:
+        value = os.environ.pop(key, None)
+        if value is not None:
+            removed[key] = value
+    try:
+        yield
+    finally:
+        for key, value in removed.items():
+            os.environ[key] = value
+
 
 class SlackClientService:
     def __init__(self):
         settings = get_settings()
-        self.client = WebClient(token=settings.slack_bot_token)
+        with _without_proxy_env():
+            self.client = WebClient(token=settings.slack_bot_token, proxy=None)
 
     def get_thread_messages(
         self, channel_id: str, thread_ts: str
@@ -46,8 +76,62 @@ class SlackClientService:
             response = self.client.team_info()
             return response.get("team")
         except SlackApiError as e:
-            print(f"Error fetching workspace info: {e}")
-            return None
+            error_code = e.response.get("error", "unknown") if e.response else "unknown"
+            logger.error(f"Slack API error fetching workspace info: {error_code} — {e}")
+            raise RuntimeError(f"Slack API error: {error_code}") from e
+        except Exception as e:
+            logger.error(f"Network error fetching workspace info: {e}")
+            raise RuntimeError(f"Network error reaching Slack: {e}") from e
+
+    def list_accessible_channels(self) -> list[dict]:
+        """List public and private channels visible to the bot."""
+        channels: list[dict] = []
+        cursor = None
+
+        try:
+            while True:
+                response = self.client.conversations_list(
+                    types="public_channel,private_channel",
+                    exclude_archived=True,
+                    limit=200,
+                    cursor=cursor,
+                )
+                channels.extend(
+                    c for c in response.get("channels", []) if c.get("is_member")
+                )
+                cursor = response.get("response_metadata", {}).get("next_cursor")
+                if not cursor:
+                    break
+        except SlackApiError as e:
+            logger.error(f"Error listing channels: {e}")
+            return []
+
+        return channels
+
+    def get_channel_history(self, channel_id: str, oldest_ts: float) -> list[dict]:
+        """Fetch recent channel messages starting from the provided timestamp."""
+        messages: list[dict] = []
+        cursor = None
+
+        try:
+            while True:
+                response = self.client.conversations_history(
+                    channel=channel_id,
+                    oldest=str(oldest_ts),
+                    limit=200,
+                    cursor=cursor,
+                    inclusive=True,
+                )
+                messages.extend(response.get("messages", []))
+                cursor = response.get("response_metadata", {}).get("next_cursor")
+                if not cursor:
+                    break
+        except SlackApiError as e:
+            error_code = e.response.get("error", "unknown") if e.response else "unknown"
+            logger.error(f"[SLACK] conversations_history failed for channel {channel_id}: {error_code} — {e}")
+            return []
+
+        return messages
 
     def format_thread_for_analysis(self, messages: list[dict]) -> str:
         """Format thread messages into a readable string for Claude."""

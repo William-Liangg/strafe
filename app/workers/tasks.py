@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from app.workers.celery_app import celery_app
+from app.services.live_slack_sync import analyze_and_generate_thread, scan_monitored_slack_threads
 from app.services.thread_analyzer import analyze_thread
 
 logger = logging.getLogger(__name__)
@@ -141,348 +142,15 @@ def analyze_and_generate_ticket_task(
     workspace_id: str,
     channel_name: str,
 ):
-    """
-    Combined task: Analyze thread and auto-generate ticket if actionable.
-    Used for automatic mode when thread crosses reply threshold.
-
-    AGENTIC FLOW:
-    1. Classify thread with Claude
-    2. If actionable (task/bug/feature_request) and meets sensitivity threshold:
-       a. Generate full ticket
-       b. If confidence >= auto_approve_threshold AND story_points <= auto_approve_max_points:
-          - Create Jira ticket immediately (agent mode)
-          - Add to active sprint
-          - Send DM to assignee
-          - Send DM to manager
-          - Log agent_decision with action=auto_assigned
-       c. Else:
-          - Save as draft (human review mode)
-          - Log agent_decision with action=flagged_for_review
-    3. If not actionable:
-       - Log agent_decision with action=dismissed
-    """
-    from app.services.slack_client import get_slack_client
-    from app.services.claude_classifier import get_classifier
-    from app.services.ticket_generator import get_ticket_generator
-    from app.services.jira_client import get_jira_client
-    from app.database import async_session
-    from app.models import (
-        SlackThread, DetectedTask, ChannelConfig, Ticket,
-        AgentDecision, AgentAction, Sprint, SprintState
+    """Analyze a Slack thread and create a ticket or dismissal decision."""
+    return run_async(
+        analyze_and_generate_thread(
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            workspace_id=workspace_id,
+            channel_name=channel_name,
+        )
     )
-    from sqlalchemy import select
-    from datetime import datetime, timezone
-
-    async def _analyze_and_generate():
-        slack_client = get_slack_client()
-        classifier = get_classifier()
-        generator = get_ticket_generator()
-
-        # Fetch thread messages
-        messages = slack_client.get_thread_messages(channel_id, thread_ts)
-        if not messages:
-            logger.error(f"Could not fetch thread {thread_ts}")
-            return None
-
-        thread_content = slack_client.format_thread_for_analysis(messages)
-
-        # Get channel config for sensitivity threshold and auto-approve settings
-        async with async_session() as session:
-            config_result = await session.execute(
-                select(ChannelConfig).where(ChannelConfig.channel_id == channel_id)
-            )
-            channel_config = config_result.scalar_one_or_none()
-
-            if not channel_config:
-                logger.warning(f"No config for channel {channel_id}")
-                return None
-
-            # Get or create thread record
-            thread_result = await session.execute(
-                select(SlackThread).where(
-                    SlackThread.thread_ts == thread_ts,
-                    SlackThread.channel_id == channel_id,
-                )
-            )
-            thread = thread_result.scalar_one_or_none()
-
-            if not thread:
-                thread = SlackThread(
-                    thread_ts=thread_ts,
-                    channel_id=channel_id,
-                    workspace_id=workspace_id,
-                    reply_count=len(messages) - 1,
-                )
-                session.add(thread)
-                await session.flush()
-
-            # Skip if already analyzed (idempotency check)
-            if thread.last_analyzed_at is not None:
-                logger.info(f"Thread {thread_ts} already analyzed, skipping")
-                return None
-
-            # Classify with Claude
-            classification_result = classifier.classify_thread(thread_content)
-            classification = classification_result.get("classification", "conversation")
-            confidence = classification_result.get("confidence", 0.0)
-
-            # Mark as analyzed
-            thread.last_analyzed_at = datetime.now(timezone.utc)
-            thread.reply_count = len(messages) - 1
-
-            # Create detected task record
-            detected_task = DetectedTask(
-                thread_id=thread.id,
-                classification=classification,
-                confidence=confidence,
-                title=classification_result.get("title"),
-                description=classification_result.get("description"),
-                priority=classification_result.get("priority"),
-                raw_claude_response=classification_result,
-                status="pending",
-            )
-            session.add(detected_task)
-            await session.flush()
-
-            # Check if actionable and meets sensitivity threshold
-            is_actionable = (
-                classification in ("task", "bug", "feature_request")
-                and confidence >= channel_config.sensitivity
-            )
-
-            if not is_actionable:
-                # Create DISMISSED agent decision
-                reason = _build_dismissed_reasoning(
-                    classification, confidence, channel_config.sensitivity, channel_name
-                )
-                agent_decision = AgentDecision(
-                    detected_task_id=detected_task.id,
-                    action=AgentAction.DISMISSED,
-                    confidence=confidence,
-                    reasoning=reason,
-                    channel_name=channel_name,
-                    auto_approved=False,
-                )
-                session.add(agent_decision)
-                await session.commit()
-
-                logger.info(
-                    f"Thread {thread_ts} dismissed: '{classification}' "
-                    f"with {confidence:.0%} confidence"
-                )
-                return {
-                    "action": "dismissed",
-                    "classification": classification,
-                    "confidence": confidence,
-                    "reasoning": reason,
-                }
-
-            # Thread is actionable - generate full ticket
-            logger.info(
-                f"Thread {thread_ts} classified as '{classification}' "
-                f"with {confidence:.0%} confidence - generating ticket"
-            )
-
-            # Get thread URL
-            thread_url = slack_client.get_permalink(channel_id, thread_ts)
-            if not thread_url:
-                thread_url = f"slack://channel?id={channel_id}&message={thread_ts}"
-
-            # Generate full ticket
-            ticket_data = await generator.generate_ticket(
-                thread_content=thread_content,
-                channel_name=channel_name,
-                thread_url=thread_url,
-            )
-
-            story_points = ticket_data["story_points"]
-            assignee_name = ticket_data.get("suggested_assignee_name")
-            assignee_slack_id = ticket_data.get("suggested_assignee_slack_id")
-            assignee_reason = ticket_data.get("assignee_reason")
-
-            # Check auto-approve conditions
-            meets_confidence = confidence >= channel_config.auto_approve_threshold
-            meets_points = story_points <= channel_config.auto_approve_max_points
-            should_auto_approve = meets_confidence and meets_points
-
-            if should_auto_approve:
-                # AGENT MODE: Auto-approve and create Jira ticket immediately
-                jira_client = get_jira_client()
-
-                try:
-                    # Create Jira ticket
-                    jira_result = await jira_client.create_ticket(
-                        title=ticket_data["title"],
-                        description=ticket_data["description"],
-                        priority=ticket_data["priority"],
-                        labels=ticket_data["labels"],
-                        story_points=story_points,
-                    )
-                    jira_key = jira_result["key"]
-                    jira_url = jira_result["url"]
-
-                    # Add to active sprint
-                    active_sprint = await jira_client.get_active_sprint()
-                    if active_sprint:
-                        await jira_client.add_to_sprint(jira_key, active_sprint["id"])
-
-                    # Get local active sprint for DB association
-                    sprint_result = await session.execute(
-                        select(Sprint).where(Sprint.state == SprintState.ACTIVE)
-                    )
-                    local_sprint = sprint_result.scalar_one_or_none()
-
-                    # Create ticket in DB with status=created
-                    ticket = Ticket(
-                        detected_task_id=detected_task.id,
-                        jira_ticket_id=jira_key,
-                        jira_ticket_url=jira_url,
-                        title=ticket_data["title"],
-                        description=ticket_data["description"],
-                        priority=ticket_data["priority"],
-                        labels=ticket_data["labels"],
-                        story_points=story_points,
-                        suggested_assignee_slack_id=assignee_slack_id,
-                        suggested_assignee_name=assignee_name,
-                        assignee_reason=assignee_reason,
-                        source_thread_url=thread_url,
-                        source_channel_id=channel_id,
-                        source_channel_name=channel_name,
-                        source_thread_ts=thread_ts,
-                        trigger_mode="automatic",
-                        status="created",
-                        sprint_id=local_sprint.id if local_sprint else None,
-                    )
-                    session.add(ticket)
-                    await session.flush()
-
-                    # Update detected task status
-                    detected_task.status = "converted"
-
-                    # Build reasoning
-                    reasoning = _build_auto_assigned_reasoning(
-                        assignee_name=assignee_name,
-                        assignee_reason=assignee_reason,
-                        confidence=confidence,
-                        auto_approve_threshold=channel_config.auto_approve_threshold,
-                        story_points=story_points,
-                        auto_approve_max_points=channel_config.auto_approve_max_points,
-                    )
-
-                    # Create AUTO_ASSIGNED agent decision
-                    agent_decision = AgentDecision(
-                        ticket_id=ticket.id,
-                        detected_task_id=detected_task.id,
-                        action=AgentAction.AUTO_ASSIGNED,
-                        confidence=confidence,
-                        reasoning=reasoning,
-                        assignee_name=assignee_name,
-                        assignee_reason=assignee_reason,
-                        jira_ticket_id=jira_key,
-                        channel_name=channel_name,
-                        story_points=story_points,
-                        auto_approved=True,
-                    )
-                    session.add(agent_decision)
-                    await session.commit()
-
-                    # Send Slack DMs
-                    _send_assignee_dm(
-                        slack_client=slack_client,
-                        assignee_slack_id=assignee_slack_id,
-                        title=ticket_data["title"],
-                        jira_key=jira_key,
-                        jira_url=jira_url,
-                        priority=ticket_data["priority"],
-                        story_points=story_points,
-                        channel_name=channel_name,
-                    )
-
-                    _send_manager_dm(
-                        slack_client=slack_client,
-                        manager_slack_id=channel_config.manager_slack_id,
-                        jira_key=jira_key,
-                        assignee_name=assignee_name,
-                        assignee_reason=assignee_reason,
-                        confidence=confidence,
-                        story_points=story_points,
-                        priority=ticket_data["priority"],
-                        title=ticket_data["title"],
-                    )
-
-                    logger.info(
-                        f"AGENT: Auto-assigned ticket {jira_key} to {assignee_name}"
-                    )
-                    return {
-                        "action": "auto_assigned",
-                        "ticket_id": str(ticket.id),
-                        "jira_key": jira_key,
-                        "assignee": assignee_name,
-                        "reasoning": reasoning,
-                    }
-
-                except Exception as e:
-                    logger.error(f"Jira creation failed, falling back to draft: {e}")
-                    # Fall through to draft creation
-
-            # HUMAN REVIEW MODE: Create draft ticket
-            ticket = Ticket(
-                detected_task_id=detected_task.id,
-                title=ticket_data["title"],
-                description=ticket_data["description"],
-                priority=ticket_data["priority"],
-                labels=ticket_data["labels"],
-                story_points=story_points,
-                suggested_assignee_slack_id=assignee_slack_id,
-                suggested_assignee_name=assignee_name,
-                assignee_reason=assignee_reason,
-                source_thread_url=thread_url,
-                source_channel_id=channel_id,
-                source_channel_name=channel_name,
-                source_thread_ts=thread_ts,
-                trigger_mode="automatic",
-                status="draft",
-            )
-            session.add(ticket)
-            await session.flush()
-
-            # Update detected task status
-            detected_task.status = "converted"
-
-            # Build reasoning for flagged_for_review
-            reasoning = _build_flagged_reasoning(
-                assignee_name=assignee_name,
-                confidence=confidence,
-                auto_approve_threshold=channel_config.auto_approve_threshold,
-                story_points=story_points,
-                auto_approve_max_points=channel_config.auto_approve_max_points,
-            )
-
-            # Create FLAGGED_FOR_REVIEW agent decision
-            agent_decision = AgentDecision(
-                ticket_id=ticket.id,
-                detected_task_id=detected_task.id,
-                action=AgentAction.FLAGGED_FOR_REVIEW,
-                confidence=confidence,
-                reasoning=reasoning,
-                assignee_name=assignee_name,
-                assignee_reason=assignee_reason,
-                channel_name=channel_name,
-                story_points=story_points,
-                auto_approved=False,
-            )
-            session.add(agent_decision)
-            await session.commit()
-
-            logger.info(f"Created draft ticket: {ticket.title} (needs review)")
-            return {
-                "action": "flagged_for_review",
-                "ticket_id": str(ticket.id),
-                "classification": classification,
-                "reasoning": reasoning,
-            }
-
-    return run_async(_analyze_and_generate())
 
 
 def _build_dismissed_reasoning(
@@ -580,6 +248,51 @@ def _send_assignee_dm(
         logger.info(f"Sent assignee DM to {assignee_slack_id}")
     except Exception as e:
         logger.error(f"Failed to send assignee DM: {e}")
+
+
+@celery_app.task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=600,
+    retry_kwargs={"max_retries": 2},
+)
+def scan_live_slack_task(self, scan_id: str, since_hours: int):
+    """Backfill recent Slack threads from monitored channels."""
+    from app.database import async_session
+    from app.models import SlackScan
+
+    async def _scan():
+        async with async_session() as session:
+            scan = await session.get(SlackScan, UUID(scan_id))
+            if not scan:
+                raise ValueError(f"Slack scan {scan_id} not found")
+            scan.status = "running"
+            await session.commit()
+
+        try:
+            stats = await scan_monitored_slack_threads(since_hours)
+            async with async_session() as session:
+                scan = await session.get(SlackScan, UUID(scan_id))
+                if scan:
+                    scan.status = "success"
+                    scan.channels_scanned = stats["channels_scanned"]
+                    scan.threads_found = stats["threads_found"]
+                    scan.tickets_generated = stats["tickets_generated"]
+                    scan.completed_at = datetime.now(timezone.utc)
+                    await session.commit()
+            return stats
+        except Exception as exc:
+            async with async_session() as session:
+                scan = await session.get(SlackScan, UUID(scan_id))
+                if scan:
+                    scan.status = "failed"
+                    scan.error_message = str(exc)
+                    scan.completed_at = datetime.now(timezone.utc)
+                    await session.commit()
+            raise
+
+    return run_async(_scan())
 
 
 @celery_app.task(

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Bot } from 'lucide-react'
-import { useAgentDecisions, useAgentStatus, useSummary, useTickets } from '@/lib/hooks'
+import { useAgentDecisions, useAgentStatus, useSlackScanStatus, useSummary, useTickets } from '@/lib/hooks'
 import type { Ticket, AgentDecision } from '@/lib/types'
-import { approveTicket, rejectTicket } from '@/lib/api'
+import { approveTicket, bootstrapLiveFeed, rejectTicket } from '@/lib/api'
 
 function LoadingBar({ isLoading }: { isLoading: boolean }) {
   return (
@@ -225,6 +225,9 @@ export default function AgentPage() {
   const { data: decisionsData, mutate: mutateDecisions } = useAgentDecisions(undefined, 50)
   const { data: summary, mutate: mutateSummary } = useSummary()
   const { data: ticketsData, mutate: mutateTickets } = useTickets()
+  const [isBootstrapping, setIsBootstrapping] = useState(false)
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null)
+  const { data: scanStatus, mutate: mutateScanStatus } = useSlackScanStatus(true)
 
   const [approvingId, setApprovingId] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
@@ -282,8 +285,50 @@ export default function AgentPage() {
     ? Math.round(agentStatus.avg_confidence_today * 100)
     : 0
 
+  const dashboardSummary = summary as unknown as {
+    current_sprint?: { adhoc_percentage: number } | null
+    comparison_to_last_sprint?: { direction?: 'up' | 'down' | 'flat' } | null
+  } | undefined
   const sprintPct = summary?.current_sprint?.adhoc_percentage ?? 0
-  const sprintDirection = (summary as any)?.comparison_to_last_sprint?.direction as 'up' | 'down' | undefined
+  const sprintDirection =
+    dashboardSummary?.comparison_to_last_sprint?.direction === 'flat'
+      ? undefined
+      : dashboardSummary?.comparison_to_last_sprint?.direction
+  const isScanRunning = ['pending', 'running'].includes(scanStatus?.status ?? '')
+
+  useEffect(() => {
+    if (scanStatus?.status === 'success') {
+      setIsBootstrapping(false)
+      mutateStatus()
+      mutateDecisions()
+      mutateSummary()
+      mutateTickets()
+    }
+
+    if (scanStatus?.status === 'failed') {
+      setIsBootstrapping(false)
+      if (scanStatus.error_message) {
+        setBootstrapError(scanStatus.error_message)
+      }
+    }
+  }, [mutateDecisions, mutateStatus, mutateSummary, mutateTickets, scanStatus])
+
+  const handleBootstrap = async () => {
+    setBootstrapError(null)
+    setIsBootstrapping(true)
+    try {
+      await bootstrapLiveFeed(24)
+      mutateScanStatus()
+      mutateStatus()
+      mutateDecisions()
+      mutateSummary()
+      mutateTickets()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to bootstrap Slack feed'
+      setBootstrapError(message)
+      setIsBootstrapping(false)
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f9faf0]">
@@ -310,6 +355,14 @@ export default function AgentPage() {
             </span>
           )}
           <button
+            onClick={handleBootstrap}
+            disabled={isBootstrapping}
+            className="px-5 py-2 text-sm font-semibold rounded-2xl transition-opacity disabled:opacity-50"
+            style={{ fontFamily: 'var(--font-manrope)', background: '#ebf0e0', color: '#2d3526' }}
+          >
+            {isBootstrapping ? 'Starting…' : isScanRunning ? 'Scanning Slack… (click to restart)' : 'Replace Demo with Slack'}
+          </button>
+          <button
             onClick={handleRefresh}
             disabled={isRefreshing}
             className="px-5 py-2 text-white text-sm font-semibold rounded-2xl transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -321,6 +374,21 @@ export default function AgentPage() {
       </header>
 
       <main className="flex-1 px-8 py-8 space-y-8">
+        {(bootstrapError || scanStatus?.status === 'running' || scanStatus?.status === 'success') && (
+          <section className="bg-white rounded-3xl p-5 shadow-[0px_2px_32px_rgba(45,53,38,0.04)]">
+            {bootstrapError ? (
+              <p className="text-sm text-[#9f403d]">{bootstrapError}</p>
+            ) : scanStatus?.status === 'success' ? (
+              <p className="text-sm text-[#3a6b4a]">
+                Slack scan complete. {scanStatus.channels_scanned} channels scanned, {scanStatus.threads_found} threads found, {scanStatus.tickets_generated} tickets generated.
+              </p>
+            ) : (
+              <p className="text-sm text-[#757d6b]">
+                Scanning your Slack workspace. {scanStatus?.channels_scanned ?? 0} channels scanned, {scanStatus?.threads_found ?? 0} candidate threads found so far.
+              </p>
+            )}
+          </section>
+        )}
 
         {/* ── Row 1: Stat cards ── */}
         <section className="grid grid-cols-3 gap-6">

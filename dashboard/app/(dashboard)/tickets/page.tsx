@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { Search } from 'lucide-react'
 import { useTickets } from '@/lib/hooks'
 import { TicketDetailPanel } from '@/components/TicketDetailPanel'
-import type { Ticket, TicketPriority, TicketStatus } from '@/lib/types'
+import type { Ticket, TicketPriority } from '@/lib/types'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -54,17 +54,17 @@ export default function TicketsPage() {
   const [selected, setSelected] = useState<Ticket | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const tickets = data?.tickets ?? []
 
   const isLoading = !data && !error
 
   const filtered = useMemo(() => {
-    if (!data?.tickets) return []
-    return data.tickets.filter((t) => {
+    return tickets.filter((t) => {
       if (statusFilter !== 'all' && t.status !== statusFilter) return false
       if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
       return true
     })
-  }, [data?.tickets, statusFilter, searchQuery])
+  }, [tickets, statusFilter, searchQuery])
 
   const handleUpdate = (updated: Ticket) => {
     if (data) {
