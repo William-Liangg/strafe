@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { createDemoState } from '../../demo/data'
-import { getServerEnv } from '@/lib/server-env'
+import { getServerEnv } from '../../../../lib/server-env'
 
 export const dynamic = 'force-dynamic'
 
