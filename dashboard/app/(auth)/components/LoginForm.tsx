@@ -50,6 +50,7 @@ export function LoginForm() {
       {/* OAuth + Divider */}
       <div className="flex flex-col gap-5">
         <OAuthButton
+          href="/api/auth/slack"
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
@@ -183,17 +184,19 @@ export function LoginForm() {
 function OAuthButton({
   icon,
   label,
+  href,
 }: {
   icon: React.ReactNode
   label: string
+  href: string
 }) {
   return (
-    <button
-      type="button"
+    <a
+      href={href}
       className="group flex items-center justify-center gap-2.5 w-full rounded-lg border border-[var(--border)] bg-[var(--secondary)] py-2.5 text-sm text-[var(--foreground)] font-medium transition-all duration-200 ease-out hover:bg-[var(--accent)] hover:border-[var(--ring)] hover:shadow-[0_0_0_3px_rgba(255,255,255,0.03)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
     >
       <span className="transition-transform duration-200 group-hover:scale-110">{icon}</span>
       {label}
-    </button>
+    </a>
   )
 }
