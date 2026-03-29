@@ -9,25 +9,22 @@ import type { Ticket, TicketPriority, TicketStatus } from '@/lib/types'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-function priorityStripe(p: TicketPriority) {
-  if (p === 'critical' || p === 'high') return 'bg-[#ff6e84]'
-  if (p === 'medium') return 'bg-amber-500'
-  return 'bg-slate-600'
+function priorityPip(p: TicketPriority) {
+  if (p === 'critical' || p === 'high') return 'bg-[#9f403d]'
+  if (p === 'medium') return 'bg-[#a07842]'
+  return 'bg-[#b8c4a8]'
 }
 
-function priorityBadge(p: TicketPriority) {
-  if (p === 'critical' || p === 'high')
-    return 'bg-[#ff6e84] border-2 border-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-  if (p === 'medium')
-    return 'bg-amber-500/10 text-amber-500 border border-amber-500'
-  return 'bg-slate-700 text-slate-400 border border-slate-600'
+function priorityLabel(p: TicketPriority): string {
+  if (p === 'critical' || p === 'high') return 'HIGH'
+  if (p === 'medium') return 'MED'
+  return 'LOW'
 }
 
-function statusRowStyle(status: TicketStatus, isSelected: boolean) {
-  if (isSelected) return 'bg-[#bd9dff]/10 border-l-4 border-l-[#bd9dff] cursor-pointer'
-  if (status === 'draft') return 'border-l-4 border-l-[#bd9dff]/30 hover:bg-[#bd9dff]/5 cursor-pointer transition-colors'
-  if (status === 'rejected') return 'opacity-60 hover:bg-[#bd9dff]/5 cursor-pointer transition-colors'
-  return 'hover:bg-[#bd9dff]/5 cursor-pointer transition-colors'
+function priorityTextColor(p: TicketPriority): string {
+  if (p === 'critical' || p === 'high') return 'text-[#9f403d]'
+  if (p === 'medium') return 'text-[#a07842]'
+  return 'text-[#757d6b]'
 }
 
 function initials(name: string) {
@@ -79,28 +76,23 @@ export default function TicketsPage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Sticky header */}
-      <header
-        className="sticky top-0 z-30 border-b-4 border-black bg-slate-900/80 backdrop-blur-md flex justify-between items-center px-8 py-4 shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]"
-      >
-        <div className="flex items-center gap-6">
+      <header className="sticky top-0 z-30 bg-[#f9faf0]/80 backdrop-blur-[20px] flex justify-between items-center px-8 py-4 shadow-[0px_1px_0px_rgba(184,196,168,0.3)]">
+        <div className="flex items-center gap-8">
           <h2
-            className="text-3xl font-black italic tracking-tighter text-slate-50"
-            style={{ fontFamily: 'var(--font-space-grotesk)' }}
+            className="text-2xl font-bold tracking-tight text-[#2d3526]"
+            style={{ fontFamily: 'var(--font-manrope)', letterSpacing: '-0.02em' }}
           >
             Tickets
           </h2>
-          <div
-            className="flex gap-4 font-black text-lg"
-            style={{ fontFamily: 'var(--font-space-grotesk)' }}
-          >
+          <div className="flex gap-1" style={{ fontFamily: 'var(--font-manrope)' }}>
             {TABS.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setStatusFilter(tab.value)}
                 className={
                   statusFilter === tab.value
-                    ? 'text-violet-400 relative after:content-[""] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-[3px] after:bg-violet-400'
-                    : 'text-slate-300 hover:text-violet-400 transition-colors'
+                    ? 'px-4 py-2 text-sm font-semibold text-[#2d3526] bg-white rounded-2xl shadow-[0px_1px_8px_rgba(45,53,38,0.06)]'
+                    : 'px-4 py-2 text-sm font-medium text-[#757d6b] rounded-2xl hover:text-[#2d3526] hover:bg-white/60 transition-colors'
                 }
               >
                 {tab.label}
@@ -110,72 +102,70 @@ export default function TicketsPage() {
         </div>
         <button
           onClick={() => mutate()}
-          className="bg-[#bd9dff] text-[#3c0089] px-6 py-2 border-2 border-black font-black uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:scale-95 duration-100"
-          style={{ fontFamily: 'var(--font-space-grotesk)' }}
+          className="px-5 py-2 text-white text-sm font-semibold rounded-2xl transition-opacity hover:opacity-90"
+          style={{ fontFamily: 'var(--font-manrope)', background: 'linear-gradient(180deg, #5f5e5e 0%, #535252 100%)' }}
         >
           Refresh
         </button>
       </header>
 
       {/* Content */}
-      <main className="flex-1 p-8 bg-[#060e20]">
+      <main className="flex-1 p-8 bg-[#f9faf0]">
         {/* Search row */}
         <div className="flex items-center gap-4 mb-6">
           <div className="relative max-w-sm w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6d758c]" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#b8c4a8]" />
             <input
               type="text"
               placeholder="Search tickets..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-[#0f1930] border-2 border-black text-[#dee5ff] placeholder-[#6d758c] text-sm focus:outline-none focus:border-[#bd9dff]"
+              className="w-full pl-10 pr-4 py-2.5 bg-white rounded-2xl text-[#2d3526] placeholder-[#b8c4a8] text-sm focus:outline-none focus:ring-1 focus:ring-[#757d6b] shadow-[0px_1px_8px_rgba(45,53,38,0.04)]"
             />
           </div>
-          <span
-            className="text-xs font-bold text-[#6d758c] uppercase tracking-widest"
-            style={{ fontFamily: 'var(--font-space-grotesk)' }}
-          >
+          <span className="text-xs font-medium text-[#757d6b]" style={{ fontFamily: 'var(--font-manrope)' }}>
             {filtered.length} ticket{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
 
         {/* Table */}
-        <div className="bg-[#0f1930] border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+        <div className="bg-white rounded-3xl shadow-[0px_2px_32px_rgba(45,53,38,0.06)] overflow-hidden">
           {isLoading ? (
-            <div className="divide-y-2 divide-black/10">
+            <div className="divide-y divide-[#b8c4a8]/10">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="px-6 py-5 flex items-center gap-4 animate-pulse">
-                  <div className="w-2 h-8 bg-[#192540]" />
-                  <div className="flex-1 h-4 bg-[#192540]" />
-                  <div className="w-20 h-4 bg-[#192540]" />
-                  <div className="w-16 h-4 bg-[#192540]" />
+                  <div className="w-2 h-2 rounded-full bg-[#ebf0e0]" />
+                  <div className="flex-1 h-4 bg-[#ebf0e0] rounded-lg" />
+                  <div className="w-20 h-4 bg-[#ebf0e0] rounded-lg" />
+                  <div className="w-16 h-4 bg-[#ebf0e0] rounded-lg" />
                 </div>
               ))}
             </div>
           ) : error ? (
             <div className="p-12 text-center">
-              <p className="text-[#ff6e84] font-bold mb-3">Failed to load tickets</p>
+              <div className="w-1.5 h-1.5 rounded-full bg-[#9f403d] mx-auto mb-3" />
+              <p className="text-[#9f403d] font-medium mb-3 text-sm">Failed to load tickets</p>
               <button
                 onClick={() => mutate()}
-                className="text-[#bd9dff] text-sm font-bold hover:underline"
+                className="text-[#5f5e5e] text-sm font-semibold hover:underline"
               >
                 Try again
               </button>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="p-12 text-center text-[#6d758c]">
+            <div className="p-12 text-center text-[#757d6b] text-sm">
               {data?.tickets.length === 0 ? 'No tickets yet' : 'No tickets match your filters'}
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left">
               <thead>
-                <tr className="bg-[#141f38] border-b-2 border-black">
+                <tr className="bg-[#f9faf0]">
                   {['Ticket Title', 'Jira ID', 'Priority', 'Assignee', 'Channel', 'Timestamp'].map(
                     (col) => (
                       <th
                         key={col}
-                        className="px-6 py-4 font-black uppercase tracking-tighter text-[#40485d] text-xs"
-                        style={{ fontFamily: 'var(--font-space-grotesk)' }}
+                        className="px-6 py-4 font-semibold text-[#757d6b] text-xs uppercase tracking-widest"
+                        style={{ fontFamily: 'var(--font-manrope)' }}
                       >
                         {col}
                       </th>
@@ -183,79 +173,70 @@ export default function TicketsPage() {
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y-2 divide-black/10">
-                {filtered.map((ticket) => {
+              <tbody>
+                {filtered.map((ticket, idx) => {
                   const isSelected = selected?.id === ticket.id
-                  const stripe = priorityStripe(ticket.priority)
-                  const badge = priorityBadge(ticket.priority)
-                  const channel = ticket.source_channel_name
-                    ? `#${ticket.source_channel_name.replace('#', '')}`
-                    : '—'
+                  const pip = priorityPip(ticket.priority)
+                  const isDraft = ticket.status === 'draft'
 
                   return (
                     <tr
                       key={ticket.id}
                       onClick={() => setSelected(isSelected ? null : ticket)}
-                      className={statusRowStyle(ticket.status, isSelected)}
+                      className={[
+                        'cursor-pointer transition-colors',
+                        isSelected
+                          ? 'bg-[#f2f5e8]'
+                          : idx % 2 === 0
+                          ? 'bg-white hover:bg-[#f9faf0]'
+                          : 'bg-[#f9faf0]/60 hover:bg-[#f2f5e8]/60',
+                      ].join(' ')}
                     >
-                      <td className="px-6 py-5">
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div
-                            className={`w-2 h-8 shrink-0 shadow-[2px_0px_0px_0px_rgba(0,0,0,1)] ${stripe} ${
-                              ticket.status === 'draft' ? 'animate-pulse' : ''
-                            }`}
-                          />
-                          <span
-                            className="font-bold text-base tracking-tight text-white line-clamp-1"
-                          >
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${pip} ${isDraft ? 'animate-pulse' : ''}`} />
+                          <span className="font-semibold text-sm text-[#2d3526] line-clamp-1" style={{ fontFamily: 'var(--font-manrope)' }}>
                             {ticket.title}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-5">
+                      <td className="px-4 py-4">
                         {ticket.jira_ticket_id && ticket.jira_ticket_id !== 'JIRA_ERROR' ? (
-                          <span className="font-mono bg-black/40 px-2 py-1 border border-[#40485d] text-[#a88cfb] text-sm">
+                          <span className="font-mono bg-[#f2f5e8] px-2 py-1 rounded-lg text-[#5f5e5e] text-xs">
                             {ticket.jira_ticket_id}
                           </span>
                         ) : (
-                          <span className="text-[#40485d] text-sm">—</span>
+                          <span className="text-[#b8c4a8] text-sm">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-5">
-                        <span
-                          className={`px-2 py-0.5 text-xs font-black ${badge}`}
-                          style={{ fontFamily: 'var(--font-space-grotesk)' }}
-                        >
-                          {ticket.priority.toUpperCase()}
+                      <td className="px-4 py-4">
+                        <span className={`text-xs font-semibold ${priorityTextColor(ticket.priority)}`} style={{ fontFamily: 'var(--font-manrope)' }}>
+                          {priorityLabel(ticket.priority)}
                         </span>
                       </td>
-                      <td className="px-6 py-5">
+                      <td className="px-6 py-4">
                         {ticket.suggested_assignee_name ? (
                           <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 border-2 border-black bg-[#bd9dff] flex items-center justify-center font-black text-[#3c0089] text-[10px] shrink-0">
+                            <div className="w-7 h-7 rounded-lg bg-[#ebf0e0] flex items-center justify-center font-semibold text-[#2d3526] text-[10px] shrink-0">
                               {initials(ticket.suggested_assignee_name)}
                             </div>
-                            <span
-                              className={`text-sm font-medium ${isSelected ? 'text-[#bd9dff] font-bold' : 'text-[#dee5ff]'}`}
-                            >
+                            <span className="text-sm text-[#2d3526]">
                               {ticket.suggested_assignee_name}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-[#6d758c] text-sm">Unassigned</span>
+                          <span className="text-[#b8c4a8] text-sm">Unassigned</span>
                         )}
                       </td>
-                      <td className="px-4 py-5">
-                        <span
-                          className={`text-xs ${isSelected ? 'font-bold text-[#dee5ff] px-2 py-1 bg-black/20 border border-black' : 'text-[#6d758c]'}`}
-                        >
-                          {channel}
+                      <td className="px-4 py-4">
+                        <span className="text-xs text-[#757d6b]">
+                          {ticket.source_channel_name
+                            ? `#${ticket.source_channel_name.replace('#', '')}`
+                            : '—'}
                         </span>
                       </td>
-                      <td className="px-6 py-5">
-                        <span
-                          className={`text-sm font-mono ${isSelected ? 'text-[#dee5ff] font-bold' : 'text-[#a3aac4]'}`}
-                        >
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-[#757d6b]">
                           {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
                         </span>
                       </td>
@@ -268,7 +249,6 @@ export default function TicketsPage() {
         </div>
       </main>
 
-      {/* Detail panel */}
       {selected && (
         <TicketDetailPanel
           ticket={selected}
