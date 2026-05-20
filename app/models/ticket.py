@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import String, Integer, Float, DateTime, func, ForeignKey, Text, Enum
+from sqlalchemy import Boolean, String, Integer, Float, DateTime, func, ForeignKey, Text, Enum, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 import enum
@@ -83,6 +83,8 @@ class Ticket(Base):
 
     # Rejection tracking
     rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    is_mock: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text('false'))
 
     # Sprint assignment
     sprint_id: Mapped[uuid.UUID | None] = mapped_column(

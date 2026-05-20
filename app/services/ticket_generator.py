@@ -92,7 +92,9 @@ class TicketGenerator:
         """Fetch expertise map from database and format as text."""
         async with async_session() as session:
             result = await session.execute(
-                select(ExpertiseMap).order_by(ExpertiseMap.score.desc())
+                select(ExpertiseMap)
+                .where(ExpertiseMap.github_login.isnot(None))
+                .order_by(ExpertiseMap.score.desc())
             )
             experts = result.scalars().all()
 

@@ -229,7 +229,8 @@ async def get_engineer_workload_breakdown(current_sprint_id: str | None = None, 
             func.count(Ticket.id).label("ticket_count"),
             func.coalesce(func.sum(Ticket.story_points), 0).label("total_points")
         ).where(
-            Ticket.suggested_assignee_name.isnot(None)
+            Ticket.suggested_assignee_name.isnot(None),
+            Ticket.is_mock == False,  # noqa: E712
         )
 
         if current_sprint_id:
@@ -270,13 +271,15 @@ async def get_engineer_workload_breakdown(current_sprint_id: str | None = None, 
                 engineer_data[name]["planned_tickets"] = count
                 engineer_data[name]["planned_points"] = points
 
-        # Get expertise map for top domains
+        # Get expertise map for top domains (real GitHub users only)
         expertise_result = await session.execute(
             select(
                 ExpertiseMap.engineer_name,
                 ExpertiseMap.service_or_domain,
                 ExpertiseMap.score,
-            ).order_by(ExpertiseMap.score.desc())
+            )
+            .where(ExpertiseMap.github_login.isnot(None))
+            .order_by(ExpertiseMap.score.desc())
         )
         expertise_rows = expertise_result.all()
 

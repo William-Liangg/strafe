@@ -189,24 +189,24 @@ async def get_expertise_graph(db: AsyncSession = Depends(get_db)):
     has_github_login = "github_login" in columns
     has_avatar_url = "avatar_url" in columns
 
-    result = await db.execute(
-        select(
-            ExpertiseMap.engineer_name.label("engineer_name"),
-            ExpertiseMap.service_or_domain.label("service_or_domain"),
-            ExpertiseMap.score.label("score"),
-            (
-                ExpertiseMap.github_login
-                if has_github_login
-                else literal(None)
-            ).label("github_login"),
-            (
-                ExpertiseMap.avatar_url
-                if has_avatar_url
-                else literal(None)
-            ).label("avatar_url"),
-        )
-    )
-    rows = _prefer_github_rows(result.mappings().all())
+    query = select(
+        ExpertiseMap.engineer_name.label("engineer_name"),
+        ExpertiseMap.service_or_domain.label("service_or_domain"),
+        ExpertiseMap.score.label("score"),
+        (
+            ExpertiseMap.github_login
+            if has_github_login
+            else literal(None)
+        ).label("github_login"),
+        (
+            ExpertiseMap.avatar_url
+            if has_avatar_url
+            else literal(None)
+        ).label("avatar_url"),
+    ).where(ExpertiseMap.github_login.isnot(None))
+
+    result = await db.execute(query)
+    rows = result.mappings().all()
     return _build_graph(rows)
 
 
